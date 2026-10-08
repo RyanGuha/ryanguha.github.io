@@ -1,0 +1,1497 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"></head><body>
+<title>Ryan Guha</title>
+<meta name="description" content="Ryan Guha's interactive resume: economics student, field researcher, and builder. Scroll through the level to explore.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Pixelify+Sans:wght@400;600&display=swap">
+<style>
+/* Layout: one fixed game screen. Vertical scroll drives the camera sideways through 13 stations. */
+:root {
+  --ink: #15152b;        /* dialog boxes */
+  --ink-2: #252547;      /* raised surfaces inside boxes */
+  --edge: #f1e7d0;       /* pixel borders */
+  --paper: #f1e7d0;      /* body text */
+  --muted: #b2abcf;      /* meta text */
+  --gold: #ffcb47;       /* headings, primary buttons */
+  --leaf: #86d97c;       /* links, skill pips */
+  --clay: #e2604a;       /* accent, from the graduation stole */
+  --shade: rgba(8, 8, 24, .55);
+  --font-display: "Press Start 2P", "Courier New", monospace;
+  --font-body: "Pixelify Sans", "Trebuchet MS", system-ui, sans-serif;
+  --hud-h: 52px;
+  color-scheme: dark;
+}
+[hidden] { display: none !important; }
+html, body { height: 100%; }
+body { background: #0c0e26; color: var(--paper); font-family: var(--font-body); font-size: 17px; line-height: 1.45; overflow-x: hidden; }
+html.locked, html.locked body { overflow: hidden; }
+* { box-sizing: border-box; }
+a { color: var(--leaf); }
+button { font: inherit; }
+:focus-visible { outline: 3px solid var(--gold); outline-offset: 3px; }
+
+#app { position: fixed; inset: 0; overflow: hidden; }
+#scene { position: absolute; left: 0; top: 0; image-rendering: pixelated; image-rendering: crisp-edges; }
+#world { position: absolute; left: 0; top: 0; height: 100%; will-change: transform; }
+#spacer { width: 1px; }
+
+/* Pixel box: notched corners made from four offset shadows */
+.px { background: var(--ink); box-shadow: 4px 0 0 var(--edge), -4px 0 0 var(--edge), 0 4px 0 var(--edge), 0 -4px 0 var(--edge), 10px 10px 0 var(--shade); }
+
+/* HUD */
+#hud { position: absolute; left: 0; right: 0; top: 0; height: calc(var(--hud-h) + env(safe-area-inset-top, 0px)); padding: env(safe-area-inset-top, 0px) 16px 0; display: flex; align-items: center; gap: 14px; background: linear-gradient(rgba(10,10,30,.78), rgba(10,10,30,.45)); z-index: 5; }
+#hud .where { font-family: var(--font-display); font-size: 10px; letter-spacing: .04em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; flex: 1; }
+#hud .where b { color: var(--gold); font-weight: 400; margin-right: 8px; }
+#dots { display: flex; gap: 6px; }
+#dots button { width: 12px; height: 12px; padding: 0; border: 0; background: rgba(241,231,208,.25); cursor: pointer; }
+#dots button.done { background: var(--leaf); }
+#dots button.on { background: var(--gold); transform: scale(1.35); }
+.hud-btn { font-family: var(--font-display); font-size: 9px; color: var(--ink); background: var(--paper); border: 0; padding: 8px 9px; cursor: pointer; box-shadow: 0 3px 0 #8e8698; white-space: nowrap; }
+.hud-btn:active { transform: translateY(2px); box-shadow: 0 1px 0 #8e8698; }
+.acorns { font-family: var(--font-display); font-size: 10px; display: flex; align-items: center; gap: 6px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.acorn-ico { width: 12px; height: 14px; background:
+  linear-gradient(#5a3519 0 0) 3px 0/6px 2px no-repeat,
+  linear-gradient(#5a3519 0 0) 0 2px/12px 4px no-repeat,
+  linear-gradient(#c98a3c 0 0) 2px 6px/8px 5px no-repeat,
+  linear-gradient(#c98a3c 0 0) 4px 11px/4px 3px no-repeat; }
+
+/* Station panels */
+.panel { position: absolute; width: min(580px, calc(100vw - 40px)); overflow-y: auto; overscroll-behavior: contain; padding: 22px 24px 24px; display: flex; flex-direction: column; gap: 12px; transition: transform .35s ease, box-shadow .35s; scrollbar-width: thin; scrollbar-color: var(--muted) transparent; }
+.panel.on { box-shadow: 4px 0 0 var(--gold), -4px 0 0 var(--gold), 0 4px 0 var(--gold), 0 -4px 0 var(--gold), 10px 10px 0 var(--shade); }
+.eyebrow { padding-right: 64px; }
+.eyebrow { font-family: var(--font-display); font-size: 9px; color: var(--gold); letter-spacing: .08em; text-transform: uppercase; }
+.panel h2 { font-family: var(--font-display); font-weight: 400; font-size: 15px; line-height: 1.6; margin: 0; text-wrap: balance; }
+.org { color: var(--gold); font-weight: 600; font-size: 18px; margin: -4px 0 0; }
+.meta { color: var(--muted); font-size: 15px; margin: -8px 0 0; }
+.panel p { margin: 0; max-width: 62ch; }
+.panel ul { margin: 0; padding: 0; list-style: none; display: grid; gap: 6px; }
+.panel li { padding-left: 20px; position: relative; }
+.panel li::before { content: ""; position: absolute; left: 2px; top: .55em; width: 8px; height: 8px; background: var(--leaf); clip-path: polygon(0 0, 100% 50%, 0 100%); }
+.tags { display: flex; flex-wrap: wrap; gap: 8px; }
+.tag { font-size: 14px; padding: 2px 8px; background: var(--ink-2); color: var(--paper); }
+.sub { display: grid; gap: 6px; padding: 12px 14px; background: var(--ink-2); }
+.sub h3 { margin: 0; font-size: 18px; font-weight: 600; }
+.sub .meta { margin: -4px 0 0; }
+.row { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+.hint { font-family: var(--font-display); font-size: 9px; color: var(--gold); line-height: 1.8; animation: blink 1.2s steps(2) infinite; }
+@keyframes blink { 50% { opacity: .35; } }
+
+.btn { display: inline-flex; align-items: center; gap: 8px; font-family: var(--font-display); font-size: 10px; line-height: 1; text-decoration: none; color: var(--ink); background: var(--gold); border: 0; padding: 12px 14px; cursor: pointer; box-shadow: 0 4px 0 #a87a10; }
+.btn.alt { background: var(--paper); box-shadow: 0 4px 0 #8e8698; }
+.btn.green { background: var(--leaf); box-shadow: 0 4px 0 #3f8a3a; }
+.btn:active { transform: translateY(3px); box-shadow: 0 1px 0 #a87a10; }
+
+/* Skill stats */
+.stats { display: grid; gap: 14px; }
+.stats h3 { margin: 0 0 6px; font-family: var(--font-display); font-weight: 400; font-size: 9px; color: var(--muted); letter-spacing: .06em; }
+.stat { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 12px; align-items: center; font-size: 16px; }
+.stat .lvl { font-size: 13px; color: var(--muted); text-align: right; }
+.pips { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(5, 1fr); gap: 3px; }
+.pips i { height: 8px; background: var(--ink-2); }
+.pips i.f { background: var(--leaf); }
+.big-stat { display: flex; gap: 10px; flex-wrap: wrap; }
+.big-stat div { background: var(--ink-2); padding: 10px 12px; min-width: 0; }
+.big-stat b { display: block; font-family: var(--font-display); font-weight: 400; font-size: 16px; color: var(--gold); margin-bottom: 6px; }
+.big-stat span { font-size: 14px; color: var(--muted); }
+
+.copyline { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; background: var(--ink-2); padding: 10px 12px; }
+.copyline code { font-family: var(--font-body); font-size: 18px; user-select: all; overflow-wrap: anywhere; }
+
+/* Screens (title, level select, quick resume) */
+.screen { position: absolute; inset: 0; z-index: 10; display: grid; place-items: center; padding: calc(16px + env(safe-area-inset-top, 0px)) 16px calc(16px + env(safe-area-inset-bottom, 0px)); background: rgba(10, 10, 32, .55); overflow-y: auto; }
+#title { background: linear-gradient(rgba(10,10,32,.86), rgba(10,10,32,.94)); }
+#app.titled #world { visibility: hidden; }
+.title-inner { display: grid; justify-items: center; gap: 22px; text-align: center; }
+.logo { margin: 0; font-family: var(--font-display); font-weight: 400; font-size: clamp(30px, 9vw, 68px); line-height: 1.15; color: var(--gold); text-shadow: 0 5px 0 var(--clay), 0 10px 0 #2a1730; letter-spacing: .02em; }
+.logo span { display: block; }
+.tagline { font-family: var(--font-display); font-size: clamp(8px, 2.4vw, 11px); color: var(--paper); letter-spacing: .12em; margin: 4px 0 0; line-height: 1.8; }
+#heroSprite { width: 80px; height: 115px; image-rendering: pixelated; }
+.menu { display: grid; gap: 4px; padding: 18px 22px; min-width: min(320px, 100%); }
+.menu > * { display: block; text-align: left; font-family: var(--font-display); font-size: 12px; color: var(--paper); background: none; border: 0; padding: 11px 10px 11px 30px; position: relative; cursor: pointer; text-decoration: none; line-height: 1.4; }
+.menu > *.sel, .menu > *:hover { color: var(--gold); }
+.menu > *:focus-visible { outline: none; }
+.menu > *.sel::before { content: ""; position: absolute; left: 8px; top: 50%; width: 10px; height: 12px; margin-top: -6px; background: var(--gold); clip-path: polygon(0 0, 100% 50%, 0 100%); animation: blink .9s steps(2) infinite; }
+.foot { font-family: var(--font-display); font-size: 8px; color: var(--muted); line-height: 2; letter-spacing: .06em; }
+
+.box { width: min(760px, 100%); padding: 24px; display: grid; gap: 18px; }
+.box-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+.box-head h2 { margin: 0; font-family: var(--font-display); font-weight: 400; font-size: 14px; color: var(--gold); }
+.levels { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+.levels button { text-align: left; background: var(--ink-2); color: var(--paper); border: 0; padding: 12px; cursor: pointer; display: grid; gap: 8px; min-width: 0; }
+.levels button:hover, .levels button:focus-visible { background: #343466; }
+.levels small { font-family: var(--font-display); font-size: 9px; color: var(--gold); }
+.levels span { font-size: 16px; }
+
+#quick .box { align-self: start; }
+.qr { display: grid; gap: 20px; }
+.qr section { display: grid; gap: 10px; }
+.qr h3 { margin: 0; font-family: var(--font-display); font-weight: 400; font-size: 10px; color: var(--gold); letter-spacing: .08em; padding-bottom: 8px; border-bottom: 2px solid var(--ink-2); }
+.qr .item { display: grid; gap: 2px; }
+.qr .item header { display: flex; justify-content: space-between; gap: 4px 12px; flex-wrap: wrap; }
+.qr .item b { font-weight: 600; }
+.qr .item time, .qr .item .where2 { color: var(--muted); font-size: 15px; font-variant-numeric: tabular-nums; }
+.qr ul { margin: 4px 0 0; padding-left: 18px; display: grid; gap: 3px; }
+.qr p { margin: 0; }
+
+.chess { display: grid; grid-template-columns: repeat(8, 1fr); width: min(100%, 320px); box-shadow: 0 0 0 4px var(--edge); margin: 4px; }
+.chess button { aspect-ratio: 1; border: 0; padding: 0; display: grid; place-items: center; cursor: pointer; font-family: "Segoe UI Symbol", "Noto Sans Symbols 2", "DejaVu Sans", "Apple Symbols", serif; font-size: clamp(20px, 6.6vw, 29px); line-height: 1; background: #e9d8b4; }
+.chess button.dk { background: #9a6b43; }
+.chess button.w { color: #fffaf0; text-shadow: 0 1px 0 #15152b, 0 -1px 0 #15152b, 1px 0 0 #15152b, -1px 0 0 #15152b; }
+.chess button.bk { color: #15152b; }
+.chess button.sel { box-shadow: inset 0 0 0 3px var(--gold); }
+.chess button.mv { background: #86d97c; }
+.chess button.bad { background: var(--clay); }
+.chess button:focus-visible { outline: 3px solid var(--gold); outline-offset: -3px; }
+.court { position: relative; height: 54px; background: #2f7a52; box-shadow: 0 0 0 4px var(--edge); margin: 4px; overflow: hidden; }
+.court .zone { position: absolute; left: 14px; top: 0; bottom: 0; width: 17%; background: rgba(255, 203, 71, .28); }
+.court .paddle { position: absolute; left: 4px; top: 15px; width: 8px; height: 24px; background: #2f9d8f; }
+.court .wall { position: absolute; right: 0; top: 0; bottom: 0; width: 8px; background: var(--paper); }
+.court .ball { position: absolute; top: 21px; left: 0; width: 12px; height: 12px; background: #e8f04a; box-shadow: inset -2px -2px 0 #b9c22e; }
+.survey { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+.survey button { min-width: 0; height: 64px; border: 0; padding: 4px; cursor: pointer; display: grid; place-items: center; font-family: var(--font-body); font-size: 12px; line-height: 1.1; color: var(--paper);
+  background: radial-gradient(circle at 30% 40%, #4f8a3a 0 30%, transparent 31%), radial-gradient(circle at 70% 55%, #3f7a3a 0 34%, transparent 35%), radial-gradient(circle at 45% 75%, #2f5d2a 0 30%, transparent 31%), #24432a; }
+.survey button.open { background: var(--ink-2); cursor: default; }
+.survey button.found { background: #2f5a3a; box-shadow: inset 0 0 0 2px var(--leaf); }
+.survey canvas { width: 40px; height: auto; image-rendering: pixelated; }
+.keys { display: grid; grid-template-columns: repeat(8, 1fr); gap: 4px; }
+.keys button { height: 92px; border: 0; padding: 0 0 8px; cursor: pointer; display: flex; align-items: flex-end; justify-content: center; font-family: var(--font-display); font-size: 9px; color: var(--ink); background: var(--paper); box-shadow: 0 5px 0 #8e8698; }
+.keys button:active, .keys button.on { transform: translateY(3px); box-shadow: 0 2px 0 #8e8698; background: var(--gold); }
+.lanes { display: grid; gap: 4px; padding: 6px; background: #2d7fb8; box-shadow: 0 0 0 4px var(--edge); margin: 4px; }
+.lane { position: relative; height: 30px; background: #3d9ad6; border-bottom: 2px dashed rgba(255, 255, 255, .45); }
+.lane b { position: absolute; left: 22px; top: 9px; font-family: var(--font-display); font-weight: 400; font-size: 8px; color: #e8f6ff; opacity: .8; }
+.lane .fin { position: absolute; right: 0; top: 0; bottom: 0; width: 8px; background: repeating-linear-gradient(#f4efe4 0 4px, #15152b 4px 8px); }
+.sw { --cap: var(--gold); position: absolute; left: 0; top: 9px; width: 12px; height: 12px; background: linear-gradient(var(--cap) 0 50%, #c98f66 50%); }
+.sw.ry { --cap: #2a1a12; }
+.sw::after { content: ""; position: absolute; right: 100%; top: 6px; width: 10px; height: 3px; background: rgba(255, 255, 255, .7); }
+.dock { position: absolute; right: 16px; bottom: calc(16px + env(safe-area-inset-bottom, 0px)); z-index: 7; width: min(330px, calc(100vw - 32px)); padding: 12px; display: grid; gap: 8px; transition: transform .3s ease; }
+.dock.min { transform: translateY(calc(100% + 40px)); }
+.dock-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; font-family: var(--font-display); font-size: 9px; color: var(--gold); }
+.dock iframe { display: block; width: 100%; height: 80px; border: 0; border-radius: 12px; }
+.dock-note { margin: 0; font-size: 13px; color: var(--muted); }
+#eggBtn { position: absolute; left: 0; top: 0; z-index: 4; padding: 0; border: 0; background: transparent; cursor: pointer; }
+.spotify iframe { display: block; width: 100%; height: 152px; border: 0; border-radius: 12px; }
+#heroBtn { position: absolute; left: 0; top: 0; z-index: 4; padding: 0; border: 0; background: transparent; cursor: pointer; }
+#bubble { position: absolute; left: 0; top: 0; z-index: 6; max-width: min(260px, calc(100vw - 32px)); padding: 10px 12px; font-size: 15px; line-height: 1.35; color: var(--ink); background: var(--paper); box-shadow: 4px 0 0 var(--gold), -4px 0 0 var(--gold), 0 4px 0 var(--gold), 0 -4px 0 var(--gold); pointer-events: none; }
+#toast { position: absolute; left: 50%; bottom: calc(24px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); z-index: 20; font-family: var(--font-display); font-size: 10px; padding: 12px 14px; color: var(--ink); background: var(--gold); box-shadow: 0 4px 0 #a87a10; pointer-events: none; opacity: 0; transition: opacity .2s; white-space: nowrap; }
+#toast.show { opacity: 1; }
+
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+@media (max-width: 620px) {
+  #dots { display: none; }
+  .panel { padding: 18px 16px 20px; }
+  .panel h2 { font-size: 13px; }
+  body { font-size: 16px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .hint, .menu > *.sel::before { animation: none; }
+  .panel { transition: none; }
+}
+</style>
+
+<div id="app">
+  <canvas id="scene" aria-hidden="true"></canvas>
+  <div id="world"></div>
+
+  <header id="hud" hidden>
+    <button class="hud-btn" id="menuBtn" type="button">Menu</button>
+    <div class="where" id="where" aria-live="polite"></div>
+    <nav id="dots" aria-label="Jump to a level"></nav>
+    <div class="acorns" title="Acorns collected"><span class="acorn-ico" aria-hidden="true"></span><span id="acornCount">0/0</span></div>
+    <button class="hud-btn" id="musicBtn" type="button" hidden>♪ Music</button>
+    <button class="hud-btn" id="soundBtn" type="button" aria-pressed="false">Sound off</button>
+  </header>
+
+  <div class="screen" id="title">
+    <div class="title-inner">
+      <canvas id="heroSprite" width="16" height="23" aria-hidden="true"></canvas>
+      <div>
+        <h1 class="logo"><span>Ryan</span><span>Guha</span></h1>
+        <p class="tagline">Economics · Research · Finance</p>
+      </div>
+      <nav class="menu px" id="mainMenu" aria-label="Main menu">
+        <button type="button" data-act="start" id="startBtn">Start game</button>
+        <button type="button" data-act="select">Level select</button>
+        <button type="button" data-act="quick">Quick resume</button>
+        <a href="https://ryanguha.miraheze.org/wiki/Main_Page" target="_blank" rel="noopener">Knowledge base ↗</a>
+        <button type="button" data-act="sound" id="menuSound">Sound: off</button>
+      </nav>
+      <p class="foot">↑ ↓ choose · Enter select<br>Interactive resume v1.0 · 2026</p>
+    </div>
+  </div>
+
+  <div class="screen" id="select" hidden>
+    <div class="box px">
+      <div class="box-head"><h2>Level select</h2><button class="btn alt" type="button" data-close>Back</button></div>
+      <div class="levels" id="levels"></div>
+    </div>
+  </div>
+
+  <div class="screen" id="quick" hidden>
+    <div class="box px">
+      <div class="box-head"><h2>Quick resume</h2>
+        <div class="row"><a class="btn resume-link" href="ryan-guha-resume.pdf" target="_blank" rel="noopener">Resume PDF</a><button class="btn alt" type="button" data-close>Back</button></div>
+      </div>
+      <div class="qr" id="qr"></div>
+    </div>
+  </div>
+
+  <button id="eggBtn" type="button" aria-label="A golden record lying in the grass" hidden></button>
+  <aside id="dock" class="dock px" hidden aria-label="Background music">
+    <div class="dock-head"><span>Ryan's soundtrack</span><button class="hud-btn" id="dockMin" type="button">Hide</button></div>
+    <div id="dockPlayer"></div>
+    <p class="dock-note" id="dockNote">Press play. It keeps going while you explore. Full songs play if you're logged in to Spotify; otherwise you'll hear previews.</p>
+  </aside>
+  <button id="heroBtn" type="button" aria-label="Ryan. Tap for a fun fact" hidden></button>
+  <div id="bubble" role="status" hidden></div>
+  <div id="toast" role="status"></div>
+</div>
+<div id="spacer"></div>
+
+<script>
+(() => {
+"use strict";
+const WIKI = "https://ryanguha.miraheze.org/wiki/";
+const EMAIL = "guharyan@gmail.com";
+const LINKEDIN = "https://www.linkedin.com/in/ryan-guha-0b5986367";
+const LEVELS = ["", "Beginner", "Elementary", "Intermediate", "Advanced", "Expert"];
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const ul = items => "<ul>" + items.map(i => "<li>" + i + "</li>").join("") + "</ul>";
+const tags = t => '<div class="tags">' + t.map(x => '<span class="tag">' + x + "</span>").join("") + "</div>";
+const pips = n => '<div class="pips">' + [1,2,3,4,5].map(i => "<i" + (i <= n ? ' class="f"' : "") + "></i>").join("") + "</div>";
+const stat = (name, n) => '<div class="stat"><span>' + name + '</span><span class="lvl">' + LEVELS[n] + "</span>" + pips(n) + "</div>";
+const ext = (href, label, cls) => '<a class="btn ' + (cls || "alt") + '" href="' + href + '" target="_blank" rel="noopener">' + label + " ↗</a>";
+
+/* ---------- Content: every station of the level ---------- */
+const STATIONS = [
+  { code: "1-1", name: "Start", prop: "home",
+    html: `<div class="eyebrow">World 1-1 · Atlanta, GA</div>
+      <h2>Hi, I'm Ryan.</h2>
+      <p>I'm an economics student (B.S., class of 2029) who likes figuring out how systems work, from interest rates to pollinator plots. I've run field research in ecology, built software at a legal-tech startup, and co-founded student teams in macroeconomics and equity research.</p>
+      <p>Driven by a passion for lifelong learning and discovery.</p>
+      ${tags(["Economics", "Ecology research", "Finance", "Philosophy"])}
+      <div class="hint">Scroll down or press → to walk<br>Click Ryan for a fun fact</div>` },
+  { code: "1-2", name: "Humble beginnings", prop: "stand",
+    html: `<div class="eyebrow">World 1-2 · Origin story</div>
+      <h2>From humble beginnings</h2>
+      <p>Before research and startups, I learned the basics behind a counter: show up, move fast, and look out for your team.</p>
+      <div class="sub"><h3>Crew Member · Chick-fil-A</h3><p class="meta">Jun – Jul 2025 · Georgia · Full-time</p>
+        ${ul(["Mastered multiple kitchen roles quickly in a fast-paced environment", "Adapted across positions and helped keep service quality high"])}</div>
+      <div class="sub"><h3>Restaurant Crew Member · McDonald's</h3><p class="meta">Jun – Aug 2022 · Suwanee, GA · Seasonal</p>
+        ${ul(["Took orders and prepared meals quickly and accurately", "Kept dining and kitchen areas clean in a busy team environment"])}</div>` },
+  { code: "1-3", name: "Character stats", prop: "chest",
+    html: `<div class="eyebrow">World 1-3 · Inventory</div>
+      <h2>Character stats</h2>
+      <div class="stats">
+        <div><h3>Research &amp; analysis</h3>${stat("Data collection &amp; analysis", 4)}${stat("Statistical analysis", 3)}${stat("Scientific communication", 4)}</div>
+        <div><h3>Finance &amp; economics</h3>${stat("Macroeconomic research", 3)}${stat("Equity research &amp; valuation", 3)}</div>
+      </div>` },
+  { code: "1-4", name: "Education", prop: "school",
+    html: `<div class="eyebrow">World 1-4 · Education</div>
+      <h2>B.S. in Economics</h2>
+      <p class="meta">Expected May 2029</p>
+      <div class="big-stat"><div><b>3.90</b><span>Cumulative GPA / 4.00</span></div><div><b>2029</b><span>Graduation year</span></div></div>
+      <div class="sub"><h3>Physics coursework · Augusta University</h3><p class="meta">Fall 2025 – Spring 2026</p>${tags(["Computational Physics", "Applied Statistics", "Physics Laboratory"])}</div>` },
+  { code: "2-1", name: "Coverable", prop: "office",
+    html: `<div class="eyebrow">World 2-1 · Work</div>
+      <h2>Software Engineering &amp; Business Development Intern</h2>
+      <p class="org">Coverable</p>
+      <p class="meta">Jun – Jul 2026 · Part-time · Hybrid</p>
+      ${ul(["Helped build and improve an AI-powered legal technology platform for immigration law professionals",
+            "Tested, debugged, and implemented product enhancements based on user and business needs",
+            "Ran market research and identified prospective law firms for customer acquisition and outreach",
+            "Worked across technical, product, and business functions in a startup"])}
+      ${tags(["AI", "Software development", "QA &amp; debugging", "Market research"])}` },
+  { code: "2-2", name: "Piedmont Hospital", prop: "hospital",
+    html: `<div class="eyebrow">World 2-2 · Service</div>
+      <h2>Volunteer Shift Lead</h2>
+      <p class="org">Piedmont Hospital</p>
+      <p class="meta">Atlanta, GA</p>
+      ${ul(["Led and mentored teams of 3 to 4 volunteers in a high-acuity healthcare environment",
+            "Supported patients, families, and hospital staff across multiple departments",
+            "Modeled best practices for new volunteers and coordinated daily volunteer activities"])}
+      ${tags(["Leadership", "Mentoring", "Healthcare"])}` },
+  { code: "3-1", name: "Field research", prop: "camera",
+    html: `<div class="eyebrow">World 3-1 · Research</div>
+      <h2>Undergraduate Researcher &amp; Selected Presenter</h2>
+      <p class="org">Laverlea Preserve · Augusta University</p>
+      <p class="meta">Sep 2025 – May 2026 · Evans, GA · with Dr. Susan Blas</p>
+      ${ul(["Monitored vertebrate and invertebrate biodiversity with passive camera traps and field surveys",
+            "Evaluated how native grass-pollinator plots affect species richness and activity",
+            "Studied how low-cost technology can support conservation and wildlife management"])}
+      <div class="sub"><h3>Presented at GURC 2025</h3><p class="meta">Nov 2025 · Oxford College of Emory University · Paper session 3</p>
+        <p>Selected to present this work at the Georgia Undergraduate Research Conference to students, faculty, and researchers.</p></div>
+      ${tags(["Camera traps", "Field surveys", "Data analysis", "Public speaking"])}
+      <div class="row">${ext(WIKI + "Project:Laverlea_Preserve", "Project page")}</div>` },
+  { code: "3-2", name: "Harvard BSCP", prop: "lab",
+    html: `<div class="eyebrow">World 3-2 · Program</div>
+      <h2>Selected Participant</h2>
+      <p class="org">Biomedical Science Careers Program · Harvard Medical School</p>
+      <p class="meta">Nov 2025 · Boston, MA</p>
+      ${ul(["Selected for Harvard Medical School's biomedical career development program",
+            "Met researchers, physicians, and healthcare professionals through workshops and networking events"])}
+      ${tags(["Biomedical research", "Health sciences"])}` },
+  { code: "4-1", name: "Finance teams", prop: "billboard",
+    html: `<div class="eyebrow">World 4-1 · Finance &amp; economics</div>
+      <h2>Markets, models &amp; monetary policy</h2>
+      <div class="sub"><h3>College Fed Challenge · Co-Founder</h3><p class="meta">Sep 2026 – Present · with Anjali Sinha and teammates</p>
+        <p>Helped start the team's first run at the 2026 competition. Our analysis covers Fed projections, Treasury and mortgage rates, credit conditions, and the major risks for the next 6 to 12 months.</p></div>
+      <div class="sub"><h3>CFA Institute Research Challenge · Co-Founder</h3><p class="meta">2026 – 27 season</p>
+        <p>Co-founded the team and lead work on company analysis and financial modeling.</p></div>
+      <div class="sub"><h3>Starbucks (SBUX) equity research &amp; pitch</h3><p class="meta">Citadel × Harvard Financial Analysts Club stock pitch program</p>
+        <p>Wrote an equity research report and investment pitch on Starbucks as an application submission.</p></div>` },
+  { code: "4-2", name: "Knowledge base", prop: "library",
+    html: `<div class="eyebrow">World 4-2 · Project</div>
+      <h2>Ryan Guha Knowledge Base</h2>
+      <p class="meta">MediaWiki · ryanguha.miraheze.org</p>
+      ${ul(["Designed and maintain a public wiki covering my coursework, research, essays, and academic projects",
+            "Published 10+ interconnected pages; it's where I document what I learn"])}
+      <div class="row">${ext(WIKI + "Main_Page", "Visit the wiki", "green")}</div>` },
+  { code: "5-1", name: "Philosophy Club", prop: "temple",
+    html: `<div class="eyebrow">World 5-1 · Leadership</div>
+      <h2>Founder &amp; President</h2>
+      <p class="org">Philosophy Club · Augusta University</p>
+      <p class="meta">Aug 2025 – May 2026</p>
+      <div class="big-stat"><div><b>19</b><span>Members recruited</span></div><div><b>2</b><span>Faculty advisors</span></div></div>
+      ${ul(["Founded the club to host philosophical discussion and intellectual exchange",
+            "Organized debates, discussions, academic events, and faculty speaker sessions",
+            "Led recruitment, event planning, and club operations"])}
+      <div class="row">${ext(WIKI + "Project:Creation_of_the_Philosophy_Club", "Project page")}</div>` },
+  { code: "★", name: "Contact", prop: "finish",
+    html: `<div class="eyebrow">Final stage</div>
+      <h2>Level complete!</h2>
+      <p>Thanks for playing. I'm open to work in the Atlanta area (on-site or hybrid) and to volunteering in education and community improvement.</p>
+      <div class="copyline"><code id="emailText">${EMAIL}</code><button class="btn" type="button" id="copyEmail">Copy email</button></div>
+      <div class="row">
+        <a class="btn green resume-link" href="ryan-guha-resume.pdf" target="_blank" rel="noopener">Resume PDF</a>
+        ${ext(LINKEDIN, "LinkedIn")}
+        ${ext(WIKI + "Main_Page", "Wiki")}
+      </div>
+      <p class="meta" id="finalScore"></p>
+      <div class="row"><button class="btn" type="button" id="toAfter">After hours →</button><button class="btn alt" type="button" id="replay">Play again</button></div>` },
+  { code: "AH", name: "After hours", prop: "neon",
+    html: `<div class="eyebrow">After hours</div>
+      <h2>After hours</h2>
+      <p>The work's done. What follows is what I like to do in my spare time. Stop at each one; a few of them you can play.</p>
+      ${tags(["Chess", "Swimming", "Pickleball", "Exploring nature", "Writing", "Music"])}
+      <div class="hint">Keep scrolling →</div>` },
+  { code: "B-1", name: "Chess", prop: "chessTable",
+    html: `<div class="eyebrow">After hours</div>
+      <h2>Chess</h2>
+      <p>Find the checkmate in one move. White to play.</p>
+      <div class="chess" id="chessBoard" aria-label="Chess puzzle"></div>
+      <p class="meta" id="chessMsg" aria-live="polite">Tap a white piece, then the square to move it to.</p>
+      <div class="row"><button class="btn alt" type="button" id="chessNew">New puzzle</button></div>` },
+  { code: "B-2", name: "Swimming", prop: "pool",
+    html: `<div class="eyebrow">After hours</div>
+      <h2>Swimming</h2>
+      <p>Race Ryan one length of the pool. Alternate Left and Right strokes as fast as you can. On a keyboard, F and J work too.</p>
+      <div class="lanes" aria-hidden="true">
+        <div class="lane"><b>You</b><span class="sw" id="swYou"></span><span class="fin"></span></div>
+        <div class="lane"><b>Ryan</b><span class="sw ry" id="swRyan"></span><span class="fin"></span></div>
+      </div>
+      <div class="row"><button class="btn" type="button" id="swL">Left</button><button class="btn" type="button" id="swR">Right</button><span class="meta" id="swMsg" aria-live="polite">Tap Left to start</span></div>` },
+  { code: "B-3", name: "Pickleball", prop: "court",
+    html: `<div class="eyebrow">After hours</div>
+      <h2>Pickleball</h2>
+      <p>Your turn on the court. Hit the ball when it reaches the yellow zone by your paddle, and see how long you can keep the rally going.</p>
+      <div class="court" aria-hidden="true"><span class="zone"></span><span class="paddle"></span><span class="ball" id="pbBall"></span><span class="wall"></span></div>
+      <div class="row"><button class="btn" type="button" id="pbHit">Serve</button><span class="meta" id="pbMsg" aria-live="polite">Rally 0 · Best 0</span></div>` },
+  { code: "B-4", name: "Exploring nature", prop: "trail",
+    html: `<div class="eyebrow">After hours</div>
+      <h2>Exploring nature</h2>
+      <p>Getting outside and seeing what lives there. Try a quick field survey: three Georgia animals are hiding in this brush. Find them all.</p>
+      <div class="survey" id="survey"></div>
+      <div class="row"><span class="meta" id="surveyMsg" aria-live="polite">Found 0 of 3</span><button class="btn alt" type="button" id="surveyNew">New survey</button></div>` },
+  { code: "B-5", name: "Writing", prop: "typewriter",
+    html: `<div class="eyebrow">After hours</div>
+      <h2>Writing</h2>
+      <p class="meta">ryanguha.substack.com</p>
+      <p>My Substack is where I write for fun: personal essays about things I notice in everyday life, like how I think, talk, and learn.</p>
+      <div class="sub"><h3>Latest: Corruption of the Mind</h3><p class="meta">The nuance of learning a skill · Sep 30, 2026</p>
+        <p>On how years of watching debates sharpened my arguments, and what that habit quietly did to my everyday conversations.</p></div>
+      <div class="row">${ext("https://ryanguha.substack.com/", "Read my Substack", "green")}</div>` },
+  { code: "B-6", name: "Music", prop: "music",
+    html: `<div class="eyebrow">After hours</div>
+      <h2>Listening to music</h2>
+      <p>There's almost always a record spinning. I listen to many genres of music, going well beyond songs in my own language. Here's a sample playlist.</p>
+      <div class="row"><button class="btn" type="button" id="bgMusic">Play as background music</button></div>
+      <div class="row">${ext("https://open.spotify.com/playlist/6u1yHLKO1XAnBeCZyN8XSO", "Open playlist", "green")}${ext("https://open.spotify.com/user/q7l7m0q1xsnq59tucmybnctlj", "My Spotify")}</div>
+      <p class="meta">That's the end of the level. Thanks for playing!</p>
+      <div class="row"><button class="btn alt" type="button" id="replay2">Back to the start</button></div>` }
+];
+
+/* Quick resume (plain view of the same content) */
+const QR = `
+<section><h3>About</h3><p>Economics student (B.S., expected May 2029, GPA 3.90) based in Atlanta, GA. Field research in ecology, software and business development at a legal-tech startup, and co-founder of student finance and economics teams.</p></section>
+<section><h3>Experience</h3>
+ ${[["Coverable", "Software Engineering &amp; Business Development Intern", "Jun – Jul 2026", ["Supported development of an AI-powered legal tech platform for immigration law professionals", "Software testing, debugging, and product enhancements", "Market research and prospective-client identification"]],
+    ["Piedmont Hospital", "Volunteer Shift Lead · Atlanta, GA", "", ["Led and mentored teams of 3 to 4 volunteers in a high-acuity environment"]],
+    ["Chick-fil-A", "Crew Member", "Jun – Jul 2025", []],
+    ["McDonald's", "Restaurant Crew Member · Suwanee, GA", "Jun – Aug 2022", []]]
+   .map(([o, r, d, b]) => `<div class="item"><header><b>${o}</b><time>${d}</time></header><span class="where2">${r}</span>${b.length ? "<ul>" + b.map(x => "<li>" + x + "</li>").join("") + "</ul>" : ""}</div>`).join("")}
+</section>
+<section><h3>Research</h3>
+ ${[["Undergraduate Researcher &amp; Selected Presenter · Augusta University", "Sep 2025 – May 2026", "Biodiversity monitoring at Laverlea Preserve with Dr. Susan Blas using camera traps and field surveys; presented the work on native grass-pollinator plots at the Georgia Undergraduate Research Conference (Nov 2025)"],
+    ["Selected Participant · Harvard Medical School BSCP", "Nov 2025", "Biomedical Science Careers Program in Boston, MA"]]
+   .map(([t, d, x]) => `<div class="item"><header><b>${t}</b><time>${d}</time></header><p>${x}</p></div>`).join("")}
+</section>
+<section><h3>Projects &amp; leadership</h3>
+ ${[["College Fed Challenge · Co-Founder", "Sep 2026 – Present", "Macroeconomic outlook, rates, credit conditions, and risk analysis"],
+    ["CFA Institute Research Challenge · Co-Founder", "2026 – 27", "Company analysis and financial modeling"],
+    ["Starbucks (SBUX) equity research pitch", "", "Submission for the Citadel × Harvard Financial Analysts Club stock pitch program"],
+    ["Ryan Guha Knowledge Base", "", "Public MediaWiki with 10+ pages on coursework, research, and essays"],
+    ["Philosophy Club · Founder &amp; President", "Aug 2025 – May 2026", "Grew to 19 members with two faculty advisors; ran debates and speaker sessions"]]
+   .map(([t, d, x]) => `<div class="item"><header><b>${t}</b><time>${d}</time></header><p>${x}</p></div>`).join("")}
+</section>
+<section><h3>Education</h3>
+ <div class="item"><header><b>B.S. in Economics</b><time>Expected May 2029</time></header><p>GPA 3.90 / 4.00</p></div>
+ <div class="item"><header><b>Physics coursework · Augusta University</b><time>Fall 2025 – Spring 2026</time></header><p>Computational Physics, Applied Statistics, Physics Laboratory</p></div>
+</section>
+<section><h3>Skills</h3><p>Data collection &amp; analysis, statistical analysis, scientific communication, macroeconomic research, equity research</p></section>
+<section><h3>Off the clock</h3><p>Chess, swimming, pickleball, exploring nature, writing personal essays on Substack, and music in many genres and languages (sample playlist on Spotify). Big Marvel fan.</p></section>
+<section><h3>Contact</h3><p>${EMAIL} · <a href="${LINKEDIN}" target="_blank" rel="noopener">LinkedIn</a> · <a href="${WIKI}Main_Page" target="_blank" rel="noopener">Knowledge base</a> · <a href="https://ryanguha.substack.com/" target="_blank" rel="noopener">Substack</a></p></section>`;
+
+/* ---------- DOM setup ---------- */
+const $ = id => document.getElementById(id);
+const root = document.documentElement;
+const world = $("world"), canvas = $("scene"), ctx = canvas.getContext("2d");
+const N = STATIONS.length;
+const FINAL = STATIONS.findIndex(s => s.prop === "finish");
+const codeLabel = s => s.code === "★" ? "Final" : s.code === "AH" ? "After hours" : s.code[0] === "B" ? "Bonus " + s.code.slice(2) : "World " + s.code;
+const reduceMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+const panels = STATIONS.map((s, i) => {
+  const el = document.createElement("article");
+  el.className = "panel px";
+  el.setAttribute("aria-label", s.name);
+  el.innerHTML = s.html;
+  world.appendChild(el);
+  return el;
+});
+const dots = STATIONS.map((s, i) => {
+  const b = document.createElement("button");
+  b.type = "button"; b.title = s.name; b.setAttribute("aria-label", "Go to " + s.name);
+  b.addEventListener("click", () => goTo(i));
+  $("dots").appendChild(b);
+  return b;
+});
+STATIONS.forEach((s, i) => {
+  const b = document.createElement("button");
+  b.type = "button";
+  b.innerHTML = "<small>" + codeLabel(s) + "</small><span>" + esc(s.name) + "</span>";
+  b.addEventListener("click", () => { closeScreens(); startGame(i); });
+  $("levels").appendChild(b);
+});
+$("qr").innerHTML = QR;
+
+/* ---------- Sound (off until the visitor turns it on) ---------- */
+let soundOn = false, actx = null;
+function tone(freq, dur, delay = 0, type = "square", vol = 0.045, force = false) {
+  if (!soundOn && !force) return;
+  try {
+    actx = actx || new (window.AudioContext || window.webkitAudioContext)();
+    const t = actx.currentTime + delay, o = actx.createOscillator(), g = actx.createGain();
+    o.type = type; o.frequency.value = freq;
+    g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    o.connect(g).connect(actx.destination); o.start(t); o.stop(t + dur + 0.02);
+  } catch (e) {}
+}
+const sfx = {
+  move: () => tone(660, 0.05),
+  select: () => { tone(880, 0.06); tone(1320, 0.09, 0.06); },
+  acorn: () => { tone(988, 0.05); tone(1319, 0.1, 0.05); },
+  win: () => [523, 659, 784, 1047].forEach((f, i) => tone(f, 0.16, i * 0.12, "square", 0.05))
+};
+function setSound(on) {
+  soundOn = on;
+  $("soundBtn").textContent = on ? "Sound on" : "Sound off";
+  $("soundBtn").setAttribute("aria-pressed", String(on));
+  $("menuSound").textContent = on ? "Sound: on" : "Sound: off";
+  if (on) sfx.select();
+}
+$("soundBtn").addEventListener("click", () => setSound(!soundOn));
+
+/* ---------- Layout ---------- */
+let vw, vh, S, W, H, GY, groundRows, charX;
+function layout() {
+  vw = window.innerWidth; vh = window.innerHeight;
+  S = Math.max(2, Math.round(vh / 220));
+  if (vw / S < 120) S = Math.max(2, Math.floor(vw / 120));
+  W = Math.ceil(vw / S) + 1; H = Math.ceil(vh / S);
+  canvas.width = W; canvas.height = H;
+  canvas.style.width = W * S + "px"; canvas.style.height = H * S + "px";
+  groundRows = Math.max(24, Math.round(H * 0.15));
+  GY = H - groundRows;
+  charX = vw < 620 ? vw * 0.14 : vw * 0.2;
+  const hud = 52 + (parseFloat(getComputedStyle($("hud")).paddingTop) || 0);
+  const top = hud + 18, bottom = vw < 620 ? (GY - 26) * S : GY * S - 18;
+  const maxH = Math.max(220, bottom - top);
+  world.style.width = N * vw + "px";
+  panels.forEach((p, i) => {
+    const pw = Math.min(580, vw - 40);
+    p.style.left = i * vw + (vw - pw) / 2 + "px";
+    p.style.top = top + "px";
+    p.style.maxHeight = maxH + "px";
+  });
+  $("spacer").style.height = (N - 1) * vw + vh + "px";
+}
+
+/* ---------- Pixel helpers ---------- */
+const hash = n => { const x = Math.sin(n * 127.1 + 311.7) * 43758.5453; return x - Math.floor(x); };
+const mix = (a, b, t) => [0, 1, 2].map(k => Math.round(a[k] + (b[k] - a[k]) * t));
+const rgb = c => "rgb(" + c[0] + "," + c[1] + "," + c[2] + ")";
+const hex = h => [parseInt(h.slice(1, 3), 16), parseInt(h.slice(3, 5), 16), parseInt(h.slice(5, 7), 16)];
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+let camL = 0, night = 0, tick = 0;
+function R(x, y, w, h, c) { ctx.fillStyle = c; ctx.fillRect(Math.round(x), Math.round(y), w, h); }
+function WR(wx, y, w, h, c) { R(wx - camL, y, w, h, c); }          // world-space rect (parallax 1)
+function tint(h, amt = 0.55) { return rgb(mix(hex(h), [16, 18, 52], night * amt)); }
+
+/* Sky keyframes: dawn -> morning -> noon -> sunset -> night */
+const SKY = [
+  [0, [43, 45, 92], [245, 163, 92]],
+  [0.22, [70, 124, 212], [186, 224, 240]],
+  [0.5, [58, 118, 212], [158, 210, 240]],
+  [0.78, [64, 52, 122], [244, 146, 96]],
+  [1, [12, 14, 40], [46, 40, 98]]
+];
+function skyAt(t) {
+  for (let i = 0; i < SKY.length - 1; i++) {
+    const a = SKY[i], b = SKY[i + 1];
+    if (t <= b[0]) { const k = (t - a[0]) / (b[0] - a[0]); return [mix(a[1], b[1], k), mix(a[2], b[2], k)]; }
+  }
+  return [SKY[4][1], SKY[4][2]];
+}
+
+/* ---------- Sprites ---------- */
+const PAL = { H: "#2a1a12", h: "#4b3020", S: "#c98f66", s: "#a46c4a", E: "#1b1420", m: "#7a3a2c", N: "#26386a", n: "#1a2850", R: "#c2363d", P: "#3b4a6e", p: "#2b3756", K: "#ece7dc", k: "#7d7a86",
+  T: "#c9a66b", t: "#7d5f34", B: "#34343f", b: "#25252e", w: "#ece6da", L: "#4a4038", Y: "#ffd56a", O: "#8a3f2a", o: "#f4efe4", j: "#7a5030", M: "#fffaf0", D: "#a8693a", d: "#7e4c28", e: "#1b1420", q: "#fff6e6", g: "#c9c4b8", Z: "#2f9d8f",
+  r: "#9c8672", f: "#d9682b", v: "#4f8a3a", V: "#2f5d2a", c: "#d6302f", y: "#f2c230", u: "#8a6a44", U: "#c8ad86", x: "#2b2b3a" };
+const TOP = [
+  ".....hHHhHH.....",
+  "...HHhHHHHhHH...",
+  "..HhHHHhHHHHhH..",
+  ".HHHHhHHHHhHHHH.",
+  ".HhHHHSSSSSHHhH.",
+  ".HHHSSSSSSSSSHH.",
+  "..HHSSSESSSESH..",
+  "..HSSSSSSSSSSS..",
+  "...SSSSSSmmmS...",
+  "....sSSSSSSSs...",
+  "......sSSs......",
+  "....NRNNNNRN....",
+  "...NNRNNNNRNN...",
+  "..SNNRNNNNRNNS..",
+  "..SNNRNNNNRNNS..",
+  "..SNNNNNNNNNNS..",
+  "...nNNNNNNNNn...",
+  "....PPPPPPPP...."
+];
+const LEGS = {
+  stand: ["....PPP..PPP....", "....PPP..PPP....", "....PpP..PpP....", "....KKK..KKK....", "....kkk..kkk...."],
+  a: ["...PPP....PPP...", "..PPP......PPP..", "..Pp........pP..", ".KKK........KKK.", ".kkk........kkk."],
+  b: [".....PPPPPP.....", ".....PPpPPP.....", "......PPPP......", ".....KKKKKK.....", ".....kkkkkk....."],
+  crouch: ["...PPPPPPPPPP...", "..KKKk...KKKk..."],
+  sit: ["....PPPPPPPPPPP.", "...........PpP..", "...........KKK..", "...........kkk.."]
+};
+const legH = l => 18 + LEGS[l || "stand"].length;
+// Builds a pose: optional hat/blazer outfit, hidden arms, and extra pixels [row, col, colorKey]
+function compose(o) {
+  const rows = TOP.map(r => r.split(""));
+  if (o.hat) {
+    for (let c = 4; c <= 11; c++) rows[0][c] = "T";
+    for (let c = 3; c <= 12; c++) { rows[1][c] = "T"; rows[2][c] = "t"; }
+    for (let c = 1; c <= 14; c++) rows[3][c] = "T";
+  }
+  if (o.blazer) {
+    for (let r = 11; r <= 16; r++) for (let c = 0; c < 16; c++) {
+      const ch = rows[r][c];
+      if (ch === "N" || ch === "R") rows[r][c] = "B"; else if (ch === "n") rows[r][c] = "b";
+    }
+    for (let c = 6; c <= 9; c++) rows[11][c] = "w";
+    for (let r = 12; r <= 14; r++) { rows[r][6] = "w"; rows[r][7] = "R"; rows[r][8] = "w"; }
+  }
+  if (o.coat) {
+    for (let r = 11; r <= 16; r++) for (let c = 0; c < 16; c++) {
+      const ch = rows[r][c];
+      if (ch === "N") rows[r][c] = (c >= 6 && c <= 9 && r <= 14) ? "N" : "w";
+      else if (ch === "R") rows[r][c] = "g";
+      else if (ch === "n") rows[r][c] = "g";
+    }
+    rows[13][2] = rows[13][2] === "S" ? "w" : rows[13][2]; rows[13][13] = rows[13][13] === "S" ? "w" : rows[13][13];
+    rows[15][11] = "g";
+  }
+  if (o.phones) {
+    for (let c = 5; c <= 10; c++) rows[0][c] = "L";
+    rows[1][3] = rows[1][4] = rows[1][11] = rows[1][12] = "L"; rows[2][2] = rows[2][13] = "L";
+    for (let r = 4; r <= 6; r++) { rows[r][1] = "Z"; rows[r][2] = "Z"; rows[r][13] = "Z"; rows[r][14] = "Z"; }
+  }
+  if (o.armL === false) { rows[13][2] = "."; rows[14][2] = "."; }
+  if (o.armR === false) { rows[13][13] = "."; rows[14][13] = "."; }
+  if (o.blink) rows[6] = rows[6].map(ch => ch === "E" ? "S" : ch);
+  const all = rows.map(r => r.join("")).concat(LEGS[o.legs || "stand"]);
+  const px = [];
+  all.forEach((row, r) => { for (let c = 0; c < row.length; c++) if (row[c] !== ".") px.push([c, r, row[c]]); });
+  (o.extra || []).forEach(e => px.push([e[1], e[0], e[2]]));
+  return px;
+}
+function drawPose(c, x, y, o, flip) {
+  compose(o).forEach(([col, r, ch]) => { c.fillStyle = PAL[ch]; c.fillRect(x + (flip ? 15 - col : col), y + r, 1, 1); });
+}
+const WAVE = [[[12, 14, "S"], [11, 14, "S"], [10, 14, "S"], [9, 14, "S"]], [[12, 14, "S"], [11, 15, "S"], [10, 15, "S"], [9, 15, "S"]]];
+const heroCtx = $("heroSprite").getContext("2d");
+function drawHero(blink, wave) {
+  heroCtx.clearRect(0, 0, 16, 23);
+  drawPose(heroCtx, 0, 0, wave ? { blink, armR: false, extra: WAVE[wave - 1] } : { blink }, false);
+}
+drawHero(false, 0);
+if (!reduceMotion) {
+  let ht = 0;
+  setInterval(() => { ht = (ht + 1) % 30; drawHero(ht === 20, ht < 8 ? (ht % 2) + 1 : 0); }, 160);
+}
+
+/* ---------- What Ryan does at each stop when the visitor stops scrolling ---------- */
+// dx: where he stands relative to the stop's prop (null = stays put). sit: he sets the lantern down.
+const TYPE = t => (t >> 3) % 2 ? [[12, 14, "S"], [12, 15, "S"], [11, 16, "S"]] : [[12, 14, "S"], [11, 15, "S"], [12, 16, "S"]];
+const BOOK = t => {
+  const b = [];
+  for (let c = 13; c <= 18; c++) { b.push([11, c, c === 16 ? "O" : "o"], [12, c, c === 16 ? "O" : "o"], [13, c, "O"]); }
+  if (t % 70 < 12) b.push([10, 16, "O"], [10, 17, "o"], [9, 17, "o"], [9, 18, "o"]);
+  return b;
+};
+const ACTIONS = {
+  home: { dx: null, pose: t => (t % 260) < 96 ? { armR: false, extra: WAVE[(t >> 3) % 2] } : {} },
+  chest: { dx: -18, pose: () => ({ armR: false, extra: [[12, 14, "S"], [12, 15, "S"], [11, 16, "S"]] }) },
+  office: { dx: -48, sit: true, pose: t => ({ legs: "sit", armL: false, armR: false, extra: TYPE(t) }) },
+  camera: { dx: -14, pose: () => ({ legs: "crouch", armR: false, extra: [[11, 14, "S"], [10, 15, "S"], [9, 16, "S"]] }) },
+  billboard: { dx: -34, pose: () => ({ armR: false, extra: [[12, 14, "S"], [11, 15, "S"], [10, 16, "S"], [9, 17, "S"]] }) },
+  library: { dx: -26, pose: t => ({ armL: false, armR: false, extra: BOOK(t) }) },
+  temple: { dx: -16, sit: true, pose: () => ({ legs: "sit", armR: false, think: true, extra: [[12, 13, "S"], [11, 13, "S"], [10, 12, "S"]] }) },
+  finish: { dx: -16, sit: true, pose: () => ({ legs: "sit", armR: false, extra: [[13, 14, "S"], [13, 15, "S"], [12, 16, "j"], [12, 17, "j"], [11, 18, "j"], [11, 19, "j"], [10, 20, "j"], [9, 21, "M"], [9, 22, "M"], [10, 21, "M"], [10, 22, "M"]] }) }
+};
+const PADDLE = [[13, 13, "S"], [13, 14, "S"], [12, 15, "Z"], [11, 15, "Z"], [12, 16, "Z"], [11, 16, "Z"], [13, 15, "j"]];
+const SWING = [[12, 14, "S"], [11, 15, "S"], [10, 16, "Z"], [9, 16, "Z"], [10, 17, "Z"], [9, 17, "Z"], [11, 16, "j"]];
+const BINO = [[6, 10, "L"], [6, 11, "L"], [6, 12, "L"], [6, 13, "L"], [7, 10, "L"], [7, 11, "L"], [7, 12, "L"], [7, 13, "L"], [8, 11, "S"], [9, 11, "S"], [8, 13, "S"], [9, 13, "S"], [10, 12, "S"], [11, 12, "S"]];
+Object.assign(ACTIONS, {
+  typewriter: { dx: -48, sit: true, pose: t => ({ legs: "sit", armL: false, armR: false, extra: TYPE(t) }) },
+  neon: { dx: -26, pose: t => (t % 200) < 80 ? { armL: false, armR: false, extra: [[12, 2, "S"], [11, 1, "S"], [10, 1, "S"], [12, 13, "S"], [11, 14, "S"], [10, 14, "S"]] } : {} },
+  chessTable: { dx: -16, sit: true, pose: t => (t % 180) < 110
+    ? { legs: "sit", armR: false, think: true, extra: [[12, 13, "S"], [11, 13, "S"], [10, 12, "S"]] }
+    : { legs: "sit", armR: false, extra: [[12, 14, "S"], [12, 15, "S"], [11, 16, "S"]] } },
+  pool: { dx: -46, sit: true, swim: true, pose: () => ({}) },
+  court: { dx: -26, pose: t => { const u = (t % 70) / 70; return { armR: false, extra: (u > 0.44 && u < 0.6) ? SWING : PADDLE }; } },
+  trail: { dx: -20, pose: () => ({ armL: false, armR: false, extra: BINO }) },
+  music: { dx: -16, pose: t => {
+    const f = (t >> 4) % 6, UP_R = [[12, 14, "S"], [11, 14, "S"], [10, 14, "S"], [9, 14, "S"]], UP_L = [[12, 1, "S"], [11, 1, "S"], [10, 1, "S"], [9, 1, "S"]];
+    return [
+      { legs: "a", armL: false, armR: false, extra: UP_L.concat(UP_R), yOff: -2 },
+      { legs: "b", face: 1 },
+      { legs: "a", armR: false, extra: UP_R, face: 1 },
+      { legs: "b", face: -1 },
+      { legs: "a", armL: false, extra: UP_L, face: -1 },
+      { legs: "stand", armL: false, armR: false, extra: UP_L.concat(UP_R), yOff: -3 }
+    ][f];
+  } }
+});
+const BIRD = [["x...x", ".x.x.", "..x.."], [".....", "xxxxx", "..x.."]];
+const NOTE = ["..yy", "..y.", "..y.", "yyy.", "yy.."];
+const DEER = [
+  ["..........DD.", ".........DDDD", ".........DDeD", "..DDDDDDDDDd.", ".qDDDDDDDDD..", "..DDDDDDDDd..", "..D.D....D.D.", "..D.D....D.D.", "..d..d..d...d"],
+  ["..........DD.", ".........DDDD", ".........DDeD", "..DDDDDDDDDd.", ".qDDDDDDDDD..", "..DDDDDDDDd..", "...DD...DD...", "...DD...DD...", "...dd...dd..."]
+];
+const QMARK = [".###.", "#...#", "....#", "..##.", "..#..", ".....", "..#.."];
+const FACTS = [
+  "I started a philosophy club that grew to 19 members.",
+  "I keep a public wiki of what I study: 10+ pages and counting.",
+  "I studied physics before switching to economics.",
+  "I've worked at both Chick-fil-A and McDonald's. Ask me which fries win.",
+  "I'm a big Marvel fan.",
+  "I have my own Substack: ryanguha.substack.com",
+  "Psst: there's a golden record hidden somewhere in World 1.",
+  "The acorns here are a nod to my ecology research. Try to collect them all!"
+];
+
+/* ---------- Props (one per station, drawn on the ground) ---------- */
+function propX(i) { return (i * vw + vw * 0.86) / S; }
+const PROPS = {
+  home(x) {
+    WR(x - 16, GY - 20, 32, 20, tint("#c8a27a")); WR(x - 16, GY - 20, 32, 2, tint("#a8825c"));
+    for (let r = 0; r < 12; r++) WR(x - 19 + r, GY - 21 - r, 38 - r * 2, 1, tint(r % 3 ? "#8c3b32" : "#73302a"));
+    WR(x - 4, GY - 12, 8, 12, tint("#5a3a24")); WR(x + 2, GY - 6, 1, 1, "#ffcb47");
+    WR(x - 13, GY - 15, 6, 6, night > .3 ? "#ffd977" : tint("#9fd3f0")); WR(x + 7, GY - 15, 6, 6, night > .3 ? "#ffd977" : tint("#9fd3f0"));
+    WR(x + 22, GY - 10, 1, 10, tint("#5a3a24")); WR(x + 20, GY - 13, 6, 4, tint("#3d6fb6"));
+  },
+  chest(x) {
+    const open = actingProp === "chest";
+    if (open) {
+      WR(x - 9, GY - 22, 18, 8, tint("#a46c35")); WR(x - 9, GY - 22, 18, 1, tint("#c98a3c"));
+      WR(x - 9, GY - 22, 1, 8, tint("#ffcb47")); WR(x + 8, GY - 22, 1, 8, tint("#ffcb47"));
+    }
+    WR(x - 9, GY - 10, 18, 10, tint("#8a5a2b"));
+    if (!open) WR(x - 9, GY - 14, 18, 4, tint("#a46c35")); else WR(x - 8, GY - 14, 16, 4, "#2a1a0e");
+    WR(x - 9, GY - 10, 18, 1, tint("#5c3a1a")); WR(x - 9, GY - 14, 1, 14, tint("#ffcb47")); WR(x + 8, GY - 14, 1, 14, tint("#ffcb47"));
+    WR(x - 1, GY - 11, 3, 4, "#ffcb47");
+    if (open) {
+      WR(x - 6, GY - 15, 12, 2, "#ffcb47");
+      for (let i = 0; i < 6; i++) WR(x - 7 + i * 3, GY - 15 - ((actT * 0.4 + i * 7) % 16), 1, 1, i % 2 ? "#fff6c8" : "#ffcb47");
+    } else if ((tick >> 4) % 2) { WR(x - 6, GY - 19, 1, 1, "#fff6c8"); WR(x + 5, GY - 22, 1, 1, "#fff6c8"); }
+  },
+  school(x) {
+    WR(x - 24, GY - 28, 48, 28, tint("#9a4a3a"));
+    for (let r = 0; r < 10; r++) WR(x - 26 + r * 2, GY - 29 - r, 52 - r * 4, 1, tint("#5b2a26"));
+    WR(x - 4, GY - 46, 8, 10, tint("#9a4a3a")); WR(x - 6, GY - 48, 12, 2, tint("#5b2a26")); WR(x - 2, GY - 43, 4, 4, tint("#ffcb47"));
+    for (let i = 0; i < 4; i++) { WR(x - 20 + i * 11, GY - 22, 6, 7, night > .3 ? "#ffd977" : tint("#bfe3f2")); }
+    WR(x - 4, GY - 11, 8, 11, tint("#3a2218"));
+  },
+  office(x) {
+    WR(x - 14, GY - 62, 28, 62, tint("#4c5f86")); WR(x - 14, GY - 62, 28, 2, tint("#6e82ad"));
+    for (let r = 0; r < 9; r++) for (let c = 0; c < 4; c++) {
+      const lit = hash(r * 7 + c + 3) > (night > .3 ? .35 : .8);
+      WR(x - 11 + c * 6, GY - 57 + r * 6, 4, 3, lit ? "#ffe08a" : tint("#9cc4e4"));
+    }
+    WR(x - 4, GY - 7, 8, 7, tint("#20283f"));
+    WR(x + 18, GY - 30, 22, 30, tint("#3b4a6b"));
+    for (let r = 0; r < 4; r++) WR(x + 21, GY - 26 + r * 6, 16, 2, tint("#9cc4e4"));
+    // Desk, stool and laptop where Ryan works
+    WR(x - 40, GY - 10, 16, 2, tint("#8a5a2b")); WR(x - 39, GY - 8, 1, 8, tint("#5a3a24")); WR(x - 26, GY - 8, 1, 8, tint("#5a3a24"));
+    WR(x - 53, GY - 5, 8, 1, tint("#5a3a24")); WR(x - 50, GY - 4, 2, 4, tint("#5a3a24"));
+    WR(x - 38, GY - 11, 11, 1, tint("#9aa0ac"));
+    WR(x - 37, GY - 18, 9, 7, tint("#5b6170"));
+    const on = actingProp === "office";
+    WR(x - 36, GY - 17, 7, 5, on ? "#101828" : tint("#2a3040"));
+    if (on) for (let r = 0; r < 4; r++) {
+      const w = 1 + Math.floor(hash(r + Math.floor(actT / 9)) * 5);
+      WR(x - 36 + (r % 2), GY - 17 + r + (r > 1 ? 1 : 0) * 0, w, 1, r % 3 ? "#86d97c" : "#ffcb47");
+    }
+  },
+  hospital(x) {
+    WR(x - 22, GY - 36, 44, 36, tint("#e6e1d6")); WR(x - 22, GY - 38, 44, 2, tint("#b9b3a8"));
+    WR(x - 5, GY - 33, 10, 3, "#d83b3b"); WR(x - 1.5, GY - 36.5, 3, 10, "#d83b3b");
+    for (let i = 0; i < 2; i++) for (let c = 0; c < 5; c++) WR(x - 19 + c * 8, GY - 22 + i * 8, 5, 4, night > .3 && hash(i * 5 + c) > .4 ? "#ffe08a" : tint("#9cc4e4"));
+    WR(x - 5, GY - 8, 10, 8, tint("#7aa0c4"));
+  },
+  stand(x) {
+    WR(x - 14, GY - 14, 28, 12, tint("#d9c7a3")); WR(x - 14, GY - 14, 28, 2, tint("#8a6a44"));
+    for (let i = 0; i < 7; i++) WR(x - 16 + i * 4.6, GY - 24, 5, 6, tint(i % 2 ? "#f1ece0" : "#2f9d8f"));
+    WR(x - 15, GY - 18, 1, 4, tint("#5a3a24")); WR(x + 14, GY - 18, 1, 4, tint("#5a3a24"));
+    WR(x - 10, GY - 3, 4, 3, tint("#333")); WR(x + 6, GY - 3, 4, 3, tint("#333"));
+    WR(x - 4, GY - 17, 3, 3, "#f0b54a"); WR(x + 2, GY - 17, 3, 3, "#e0644b");
+  },
+  camera(x) {
+    WR(x, GY - 20, 2, 20, tint("#5a3a24"));
+    WR(x - 3, GY - 18, 8, 7, tint("#3e5a32")); WR(x - 1, GY - 16, 3, 3, "#111"); WR(x, GY - 16, 1, 1, "#cfe6ff");
+    if (tick - flashT < 6) { WR(x - 4, GY - 19, 9, 9, "#fffbe6"); }
+    if ((tick >> 5) % 2) WR(x + 3, GY - 17, 1, 1, "#ff4040");
+    for (let i = 0; i < 14; i++) {
+      const fx = x - 30 + i * 5 + hash(i) * 3, col = ["#c48ae0", "#ffd84a", "#f18aa8", "#ffffff"][i % 4];
+      WR(fx, GY - 4 - (i % 3), 1, 4 + (i % 3), tint("#3c7a3a")); WR(fx - 1, GY - 5 - (i % 3), 3, 2, tint(col, .4));
+    }
+  },
+  podium(x) {
+    WR(x - 16, GY - 30, 1, 30, tint("#5a3a24")); WR(x + 4, GY - 30, 1, 30, tint("#5a3a24"));
+    WR(x - 18, GY - 34, 24, 18, tint("#f4efe4")); WR(x - 18, GY - 34, 24, 1, tint("#2b2b4a"));
+    WR(x - 15, GY - 30, 6, 4, tint("#3c7a3a")); WR(x - 7, GY - 30, 10, 1, tint("#2b2b4a")); WR(x - 7, GY - 27, 8, 1, tint("#2b2b4a"));
+    for (let i = 0; i < 5; i++) WR(x - 15 + i * 4, GY - 19 - i * 1.5, 3, 2 + i * 1.5, tint("#e0644b"));
+    WR(x + 12, GY - 14, 10, 14, tint("#6b4a2e")); WR(x + 11, GY - 16, 12, 2, tint("#8a5a2b"));
+  },
+  lab(x) {
+    WR(x - 20, GY - 44, 40, 44, tint("#a9a3b8")); WR(x - 20, GY - 46, 40, 2, tint("#7d7790"));
+    WR(x - 4, GY - 41, 8, 2, tint("#2b2b4a")); WR(x - 2, GY - 39, 4, 4, tint("#e6f3ff")); WR(x - 5, GY - 35, 10, 5, "#86d97c");
+    for (let r = 0; r < 3; r++) for (let c = 0; c < 4; c++) WR(x - 17 + c * 9, GY - 27 + r * 7, 6, 4, night > .3 && hash(r * 4 + c + 9) > .4 ? "#ffe08a" : tint("#cfe6ff"));
+    WR(x - 4, GY - 7, 8, 7, tint("#4a4560"));
+  },
+  billboard(x) {
+    WR(x - 14, GY - 18, 2, 18, tint("#5a3a24")); WR(x + 12, GY - 18, 2, 18, tint("#5a3a24"));
+    WR(x - 22, GY - 44, 44, 26, tint("#f4efe4")); WR(x - 20, GY - 42, 40, 22, tint("#1e2244"));
+    const pts = [[0, 16], [6, 13], [12, 14], [18, 9], [24, 10], [30, 5], [36, 2]];
+    const prog = actingProp === "billboard" ? Math.min(1, actT / 80) : 1;
+    for (let i = 0; i < pts.length - 1; i++) {
+      const [a, b] = pts[i], [c, d] = pts[i + 1];
+      for (let s = 0; s <= 6; s++) if ((i * 7 + s) / 42 <= prog) WR(x - 18 + a + s, GY - 40 + b + (d - b) * s / 6, 1, 1, "#86d97c");
+    }
+    if (prog >= 1) WR(x + 17, GY - 39, 2, 2, "#ffcb47");
+  },
+  library(x) {
+    const cols = ["#c2363d", "#3d6fb6", "#86a83a", "#c98a3c"];
+    for (let i = 0; i < 4; i++) WR(x - 14 + (i % 2) * 2, GY - 5 - i * 5, 28 - (i % 2) * 2, 5, tint(cols[i]));
+    for (let i = 0; i < 4; i++) WR(x - 12 + (i % 2) * 2, GY - 4 - i * 5, 24 - (i % 2) * 2, 1, tint("#f4efe4"));
+    WR(x - 16, GY - 26, 15, 4, tint("#f4efe4")); WR(x + 1, GY - 26, 15, 4, tint("#f4efe4")); WR(x - 1, GY - 26, 2, 5, tint("#8a5a2b"));
+    if ((tick >> 4) % 2) WR(x - 6, GY - 31, 1, 1, "#fff6c8"); else WR(x + 6, GY - 33, 1, 1, "#fff6c8");
+  },
+  temple(x) {
+    WR(x - 24, GY - 4, 48, 4, tint("#cfc8b8")); WR(x - 21, GY - 7, 42, 3, tint("#ddd6c8"));
+    for (let i = 0; i < 5; i++) { WR(x - 19 + i * 9, GY - 29, 4, 22, tint("#ece6da")); WR(x - 18 + i * 9, GY - 29, 1, 22, tint("#cfc8b8")); }
+    WR(x - 23, GY - 32, 46, 3, tint("#ddd6c8"));
+    for (let r = 0; r < 9; r++) WR(x - 22 + r * 2.4, GY - 33 - r, 44 - r * 4.8, 1, tint("#ece6da"));
+  },
+  typewriter(x) {
+    WR(x - 40, GY - 10, 18, 2, tint("#8a5a2b")); WR(x - 39, GY - 8, 1, 8, tint("#5a3a24")); WR(x - 24, GY - 8, 1, 8, tint("#5a3a24"));
+    WR(x - 53, GY - 5, 8, 1, tint("#5a3a24")); WR(x - 50, GY - 4, 2, 4, tint("#5a3a24"));
+    const on = actingProp === "typewriter", ph = on ? Math.min(9, 2 + Math.floor(actT / 25)) : 5;
+    WR(x - 34, GY - 14 - ph, 7, ph, "#f4efe4");
+    for (let r = 1; r < ph - 1; r += 2) WR(x - 33, GY - 14 - ph + r, 3 + ((r * 7) % 3), 1, "#8e8698");
+    WR(x - 38, GY - 14, 13, 4, tint("#3a3530")); WR(x - 37, GY - 15, 11, 1, tint("#5b6170"));
+    for (let i = 0; i < 5; i++) WR(x - 36 + i * 2, GY - 12, 1, 1, (on && (actT >> 2) % 5 === i) ? "#ffcb47" : "#e9d8b4");
+    WR(x, GY - 14, 2, 14, tint("#6b4a2e"));
+    WR(x - 6, GY - 21, 14, 7, tint("#ff6719")); WR(x - 6, GY - 21, 14, 1, tint("#ff8a4a")); WR(x - 5, GY - 19, 6, 4, tint("#15152b"));
+    WR(x - 4, GY - 18, 4, 1, tint("#f4efe4")); WR(x - 4, GY - 17, 3, 1, tint("#f4efe4"));
+    const up = on && actT > 60;
+    if (up) { WR(x + 8, GY - 27, 1, 7, tint("#c9c4b8")); WR(x + 9, GY - 27, 4, 3, "#d6302f"); }
+    else { WR(x + 8, GY - 20, 6, 1, tint("#c9c4b8")); WR(x + 12, GY - 21, 2, 3, "#d6302f"); }
+  },
+  neon(x) {
+    WR(x - 16, GY - 30, 2, 30, tint("#3a3530")); WR(x + 14, GY - 30, 2, 30, tint("#3a3530"));
+    WR(x - 20, GY - 44, 40, 18, "#15152b"); WR(x - 20, GY - 44, 40, 1, "#2b2b4a");
+    const on = (tick % 240) > 6 && (tick % 240) < 230 || (tick % 240) % 4 < 2;
+    const c1 = on ? "#ff5fa2" : "#5a2a44", c2 = on ? "#5fe3d6" : "#24504c";
+    for (let r = 0; r < 7; r++) WR(x - 14 + [2, 1, 0, 0, 0, 1, 2][r], GY - 40 + r, [3, 2, 2, 2, 2, 2, 3][r], 1, c1);
+    WR(x - 11, GY - 39, 2, 1, c1); WR(x - 11, GY - 33, 2, 1, c1);
+    for (let i = 0; i < 4; i++) WR(x - 4 + i * 5, GY - 37 + (i % 2) * 2, 3, 1, c2);
+    for (let i = 0; i < 4; i++) WR(x - 4 + i * 5, GY - 32, 3, 1, c2);
+    if (on) { ctx.fillStyle = "rgba(255,95,162,.07)"; ctx.fillRect(Math.round(x - 26 - camL), GY - 50, 52, 30); }
+  },
+  chessTable(x) {
+    WR(x - 22, GY - 5, 8, 1, tint("#5a3a24")); WR(x - 19, GY - 4, 2, 4, tint("#5a3a24"));
+    WR(x + 13, GY - 5, 8, 1, tint("#5a3a24")); WR(x + 16, GY - 4, 2, 4, tint("#5a3a24"));
+    WR(x - 9, GY - 9, 18, 2, tint("#8a5a2b")); WR(x - 1, GY - 7, 2, 7, tint("#5a3a24")); WR(x - 5, GY - 1, 10, 1, tint("#5a3a24"));
+    for (let i = 0; i < 8; i++) WR(x - 8 + i * 2, GY - 11, 2, 2, tint(i % 2 ? "#e9d8b4" : "#9a6b43"));
+    const mv = actingProp === "chessTable" && (actT % 180) > 130 ? 2 : 0;
+    WR(x - 6 + mv, GY - 14, 1, 3, "#fffaf0"); WR(x - 4, GY - 13, 1, 2, "#fffaf0"); WR(x + 3, GY - 14, 1, 3, "#1b1420"); WR(x + 6, GY - 13, 1, 2, "#1b1420");
+  },
+  pool(x) {
+    WR(x + 37, GY - 8, 1, 8, tint("#c9c4b8")); WR(x + 40, GY - 8, 1, 8, tint("#c9c4b8"));
+    for (let r = 0; r < 3; r++) WR(x + 37, GY - 7 + r * 3, 4, 1, tint("#c9c4b8"));
+    WR(x - 54, GY - 14, 1, 14, tint("#d7d2c6")); WR(x - 58, GY - 16, 10, 3, tint("#e0644b"));
+  },
+  court(x) {
+    WR(x, GY - 9, 1, 9, tint("#c9c4b8")); WR(x - 1, GY - 10, 3, 1, tint("#f4efe4"));
+    for (let r = 0; r < 4; r++) WR(x - 1, GY - 8 + r * 2, 3, 1, tint("#7d7a86", .3));
+    WR(x + 24, GY - 9, 8, 9, tint("#2f9d8f")); WR(x + 22, GY - 8, 3, 2, tint("#1d6a60")); WR(x + 26, GY - 12, 4, 3, tint("#1d6a60"));
+    for (let i = 0; i < 3; i++) WR(x + 27 + (i - 1) * 1, GY - 13 - (i % 2), 2, 1, "#e8f04a");
+    if (actingProp === "court") {
+      const u = (actT % 70) / 70, hand = x - 26 + 6, mouth = x + 22;
+      const k = u < 0.5 ? u * 2 : (u - 0.5) * 2;
+      const bx = u < 0.5 ? mouth + (hand - mouth) * k : hand + (mouth + 4 - hand) * k;
+      const by = GY - 8 - Math.sin(k * Math.PI) * 16;
+      WR(bx, by, 2, 2, "#e8f04a");
+    }
+  },
+  trail(x) {
+    WR(x + 14, GY - 18, 2, 18, tint("#6b4a2e")); WR(x + 10, GY - 20, 16, 5, tint("#a46c35")); WR(x + 24, GY - 19, 3, 3, tint("#a46c35"));
+    WR(x + 12, GY - 18, 10, 1, tint("#5a3519"));
+    [[-34, "#d6302f"], [-30, "#e9d8b4"], [30, "#d6302f"]].forEach(([dx, c]) => { WR(x + dx, GY - 3, 1, 3, tint("#f4efe4")); WR(x + dx - 2, GY - 5, 5, 2, tint(c)); });
+    WR(x + 32, GY - 3, 6, 3, tint("#8a8590")); WR(x + 34, GY - 4, 3, 1, tint("#a9a3b8"));
+    for (let i = 0; i < 3; i++) WR(x + 4 + i * 4, GY - 6 + (i % 2), 5, 6, tint(i % 2 ? "#3f7a3a" : "#2f5d2a"));
+  },
+  music(x) {
+    // Record player on a little cabinet, always spinning
+    WR(x - 1, GY - 10, 20, 10, tint("#8a5a2b")); WR(x - 1, GY - 10, 20, 1, tint("#a46c35"));
+    WR(x + 1, GY - 7, 7, 5, tint("#6b4a2e")); WR(x + 10, GY - 7, 7, 5, tint("#6b4a2e"));
+    for (let k = 0; k < 5; k++) WR(x + 2 + (k % 2) * 2, GY - 6 + k, 3, 1, tint(["#c2363d", "#3d6fb6", "#86a83a", "#c98a3c", "#e9d8b4"][k]));
+    WR(x, GY - 13, 18, 3, tint("#3a3530")); WR(x, GY - 13, 18, 1, tint("#5b6170"));
+    WR(x + 2, GY - 15, 12, 2, "#15152b"); WR(x + 7, GY - 15, 2, 1, "#c2363d");
+    WR(x + 3 + ((tick >> 2) % 10), GY - 15, 1, 1, "#5b6170");
+    WR(x + 15, GY - 18, 1, 5, tint("#c9c4b8")); WR(x + 11, GY - 18, 5, 1, tint("#c9c4b8")); WR(x + 11, GY - 17, 1, 1, tint("#c9c4b8"));
+    for (let k = 0; k < 3; k++) {
+      const ph = ((actingProp === "music" ? actT * 1.4 : tick * 0.6) + k * 40) % 120;
+      const nx = x + 6 + Math.sin((ph + k * 30) / 14) * 5 + k * 3, ny = GY - 20 - ph / 3;
+      NOTE.forEach((row, r) => { for (let c = 0; c < 4; c++) if (row[c] === "y") WR(nx + c, ny + r, 1, 1, k % 2 ? "#ffcb47" : "#86d97c"); });
+    }
+  },
+  finish(x) {
+    WR(x - 30, GY - 54, 2, 54, tint("#d7d2c6")); WR(x - 31, GY - 56, 4, 3, "#ffcb47");
+    const wave = (tick >> 3) % 2;
+    for (let r = 0; r < 8; r++) WR(x - 28, GY - 52 + r, 14 - (r === 0 || r === 7 ? 1 : 0) + (wave && r % 2 ? 1 : 0), 1, r % 4 < 2 ? "#e0644b" : "#ffcb47");
+    WR(x - 23, GY - 4, 10, 4, tint("#6b4a2e")); WR(x - 23, GY - 4, 10, 1, tint("#8a5a2b"));
+    WR(x - 6, GY - 3, 16, 3, "#5a3a24"); WR(x - 4, GY - 4, 12, 2, "#7a5030");
+    const f = tick >> 2;
+    for (let i = 0; i < 6; i++) {
+      const h = 4 + Math.floor(hash(i + f) * 7);
+      WR(x - 2 + i * 2, GY - 4 - h, 2, h, i % 2 ? "#ffcb47" : "#ff7a3a");
+    }
+    ctx.fillStyle = "rgba(255,190,90," + (0.08 + night * 0.12) + ")";
+    ctx.fillRect(Math.round(x - camL - 14), GY - 16, 32, 16);
+  }
+};
+
+/* ---------- Acorns ---------- */
+const acorns = [];
+for (let i = 0; i < FINAL; i++) [0.42, 0.68].forEach(f => acorns.push({ x: (i + f) * vwSafe(), got: false, t: 0 }));
+function vwSafe() { return window.innerWidth; }
+let acornWorldW = vwSafe();
+function drawAcorn(sx, y) {
+  R(sx + 1, y, 4, 1, "#5a3519"); R(sx, y + 1, 6, 2, "#5a3519"); R(sx + 2, y - 1, 1, 1, "#3a2210");
+  R(sx + 1, y + 3, 4, 3, "#c98a3c"); R(sx + 2, y + 6, 2, 1, "#c98a3c"); R(sx + 1, y + 3, 1, 2, "#e2a95a");
+}
+
+/* ---------- Render ---------- */
+let cam = 0, lastCam = 0, dist = 0, facing = 1, lastMove = 0;
+let lastLap = -1, lapsSeen = 0, noteBurst = -999;
+let heroOff = 0, hdist = 0, heroFace = 1, actT = 0, actingProp = null, flashT = -99, jumpT = -99, waveUntil = 0, poofT = 0, lastOutfit = "", factI = 0;
+const critters = [];
+const heroBtn = $("heroBtn"), bubble = $("bubble");
+let bubbleT;
+heroBtn.addEventListener("click", () => {
+  jumpT = tick; tone(523, 0.06); tone(784, 0.08, 0.06);
+  bubble.textContent = FACTS[factI++ % FACTS.length];
+  bubble.hidden = false;
+  clearTimeout(bubbleT); bubbleT = setTimeout(() => { bubble.hidden = true; }, 4200);
+});
+function render(now) {
+  tick++;
+  const t = clamp(cam / (FINAL * vw), 0, 1);
+  night = clamp((t - 0.72) / 0.28, 0, 1);
+  camL = cam / S;
+  const [top, bot] = skyAt(t);
+
+  // Hero state: walk to the stop's prop and act once the visitor stops scrolling
+  const idleNow = now - lastMove > 450;
+  const st = STATIONS[Math.max(0, current)];
+  const act = ACTIONS[st.prop];
+  const baseX = charX / S;
+  const atStation = Math.abs(cam - Math.max(0, current) * vw) < vw * 0.1;
+  let desired = 0;
+  if (idleNow && atStation && act && act.dx != null) desired = propX(Math.max(0, current)) + act.dx - camL - baseX;
+  const diff = desired - heroOff;
+  let selfWalk = false;
+  if (Math.abs(diff) > 0.6) {
+    const step = Math.sign(diff) * Math.min(Math.abs(diff), desired === 0 ? 7 : 2.4);
+    heroOff += step; hdist += Math.abs(step); heroFace = Math.sign(diff); selfWalk = true;
+  } else heroOff = desired;
+  const arrived = !!(idleNow && atStation && act && !selfWalk);
+  actT = arrived ? actT + 1 : 0;
+  actingProp = arrived ? st.prop : null;
+  if (actingProp === "camera" && actT === 70) { flashT = tick; critters.push({ x: propX(current) + 6 }); tone(1500, 0.04); }
+
+  // Sky in dithered bands
+  const bands = 14;
+  for (let b = 0; b < bands; b++) R(0, Math.floor(b * GY / bands), W, Math.ceil(GY / bands) + 1, rgb(mix(top, bot, b / (bands - 1))));
+  // Stars
+  if (night > 0.05) {
+    for (let i = 0; i < 70; i++) {
+      const sx = Math.floor(hash(i) * W), sy = Math.floor(hash(i + 99) * GY * 0.6);
+      if (hash(i + Math.floor(tick / 40)) > 0.15 * (1 / night)) R(sx, sy, 1, 1, "rgba(255,248,220," + (night * 0.9) + ")");
+    }
+  }
+  // Sun / moon
+  const arc = Math.sin(t * Math.PI);
+  const bx = W * (0.12 + 0.72 * t), by = GY * (0.62 - 0.42 * arc);
+  if (night < 0.6) {
+    const sc = mix([255, 214, 120], [255, 140, 90], clamp((t - 0.6) / 0.25, 0, 1));
+    for (let r = 0; r < 7; r++) R(bx - [2, 4, 5, 5, 5, 4, 2][r], by - 3 + r, [5, 9, 11, 11, 11, 9, 5][r], 1, rgb(sc));
+  }
+  if (night > 0.3) {
+    const mx = W * 0.78, my = GY * 0.18;
+    for (let r = 0; r < 7; r++) R(mx - [2, 3, 4, 4, 4, 3, 2][r], my - 3 + r, [5, 7, 9, 9, 9, 7, 5][r], 1, "rgba(242,236,214," + night + ")");
+    R(mx + 1, my - 2, 4, 5, rgb(mix(top, bot, 0.2)));
+  }
+  // Far mountains (parallax .12) and hills (.3)
+  const far = rgb(mix(mix(top, bot, 0.6), [40, 46, 90], 0.45));
+  const near = rgb(mix([62, 110, 86], [20, 24, 56], night * 0.8));
+  for (let sx = 0; sx < W; sx++) {
+    const a = sx + camL * 0.12, b = sx + camL * 0.3;
+    const y1 = GY - 34 - (Math.sin(a * 0.021) * 12 + Math.sin(a * 0.053 + 1) * 6 + Math.sin(a * 0.008) * 10);
+    const y2 = GY - 14 - (Math.sin(b * 0.03 + 2) * 6 + Math.sin(b * 0.071) * 3);
+    R(sx, y1, 1, GY - y1, far);
+    R(sx, y2, 1, GY - y2, near);
+  }
+  // Pine layer (parallax .6)
+  const p = 0.6, sp = 22, pc = tint("#2f5d3a", .7), pd = tint("#244a2e", .7), tr = tint("#4a2f1f", .7);
+  const k0 = Math.floor(camL * p / sp) - 2, k1 = k0 + Math.ceil(W / sp) + 4;
+  for (let k = k0; k < k1; k++) {
+    const hv = hash(k + 7);
+    if (hv < 0.3) continue;
+    const tx = Math.round(k * sp + hv * 9 - camL * p), th = 16 + Math.floor(hv * 20), ty = GY - th - 3;
+    R(tx, GY - 4, 2, 4, tr);
+    const tier = Math.ceil(th / 3);
+    for (let r = 0; r < th; r++) {
+      const half = 1 + Math.floor((r % tier) * 0.55) + Math.floor(r / tier) * 2;
+      R(tx + 1 - half, ty + r, half * 2, 1, r % tier < 2 ? pd : pc);
+    }
+  }
+  // Props
+  for (let i = 0; i < N; i++) {
+    const px = propX(i);
+    if (px - camL > -70 && px - camL < W + 70) PROPS[STATIONS[i].prop](px);
+  }
+  // Easter egg: a golden record hidden in the grass in World 1
+  if (!eggFound) {
+    const ex = Math.round(propX(0) - 36 - camL), ey = GY - 2;
+    if (ex > -12 && ex < W + 12) {
+      R(ex, ey, 7, 2, "#d9a520"); R(ex + 1, ey - 1, 5, 1, "#ffcb47"); R(ex + 3, ey, 1, 1, "#c2363d");
+      if (tick % 120 < 10) { R(ex + 6, ey - 4, 1, 1, "#fff6c8"); R(ex - 1, ey - 3, 1, 1, "#fff6c8"); }
+      eggBtn.hidden = !!$("app").classList.contains("titled");
+      eggBtn.style.transform = "translate(" + (ex - 4) * S + "px," + (ey - 6) * S + "px)";
+      eggBtn.style.width = 15 * S + "px"; eggBtn.style.height = 10 * S + "px";
+    } else eggBtn.hidden = true;
+  }
+  // Wildlife that the camera trap scares up
+  if (actingProp === "trail" && actT % 150 === 30) critters.push({ type: "bird", x: camL + W + 4, y: GY - 42 - Math.floor(Math.random() * 18), vx: -1.1 });
+  for (let i = critters.length - 1; i >= 0; i--) {
+    const c = critters[i];
+    c.x += c.vx || 1.5;
+    const sx = Math.round(c.x - camL);
+    if (sx > W + 20 || sx < -30) { critters.splice(i, 1); continue; }
+    if (c.type === "bird") {
+      BIRD[(tick >> 3) % 2].forEach((row, r) => { for (let col = 0; col < 5; col++) if (row[col] !== ".") R(sx + col, c.y + r, 1, 1, tint("#2b2b3a", .3)); });
+      continue;
+    }
+    DEER[(tick >> 2) % 2].forEach((row, r) => { for (let col = 0; col < row.length; col++) if (row[col] !== ".") R(sx + col, GY - 9 + r - ((tick >> 2) % 2), 1, 1, tint(PAL[row[col]], .4)); });
+  }
+  if (tick - flashT < 4) { ctx.fillStyle = "rgba(255,255,240,.18)"; ctx.fillRect(0, 0, W, H); }
+  // Signposts at the start of each station
+  for (let i = 0; i < N; i++) {
+    const sx = (i * vw + vw * 0.06) / S;
+    if (sx - camL < -20 || sx - camL > W + 20) continue;
+    WR(sx, GY - 14, 2, 14, tint("#6b4a2e"));
+    WR(sx - 7, GY - 18, 16, 7, tint("#a46c35")); WR(sx - 7, GY - 18, 16, 1, tint("#c98a3c"));
+    WR(sx - 4, GY - 15, 10, 1, tint("#5a3519"));
+  }
+  // Ground
+  const g1 = tint("#7ccf5a", .6), g2 = tint("#4fa047", .6), d1 = tint("#8a5a34", .6), d2 = tint("#6e4526", .6), d3 = tint("#a3703f", .6);
+  R(0, GY, W, groundRows, d1);
+  R(0, GY, W, 3, g1); R(0, GY + 3, W, 2, g2);
+  const off = Math.floor(camL);
+  for (let sx = -1; sx < W + 1; sx++) {
+    const wx = sx + off;
+    if (hash(wx) > 0.7) R(sx - (camL - off), GY - 1, 1, 1, g1);
+    if (hash(wx + 5) > 0.88) R(sx - (camL - off), GY + 8 + Math.floor(hash(wx + 9) * (groundRows - 10)), 2, 1, d2);
+    if (hash(wx + 11) > 0.93) R(sx - (camL - off), GY + 10 + Math.floor(hash(wx + 3) * (groundRows - 12)), 1, 1, d3);
+  }
+  if (night > 0) { ctx.fillStyle = "rgba(10,12,40," + night * 0.35 + ")"; ctx.fillRect(0, GY, W, groundRows); }
+  for (let i = 0; i < N; i++) if (STATIONS[i].prop === "pool") {
+    const x = propX(i);
+    if (x - camL < -60 || x - camL > W + 60) continue;
+    WR(x - 40, GY, 80, 1, tint("#e9e4d8")); WR(x - 40, GY, 2, 11, tint("#e9e4d8")); WR(x + 38, GY, 2, 11, tint("#e9e4d8")); WR(x - 40, GY + 10, 80, 1, tint("#e9e4d8"));
+    WR(x - 38, GY + 1, 76, 9, tint("#3d9ad6", .5)); WR(x - 38, GY + 1, 76, 1, tint("#8fd3f2", .5));
+    for (let k = 0; k < 10; k++) WR(x - 37 + ((k * 13 + tick / 4) % 72), GY + 3 + (k % 4) * 2, 3, 1, tint("#9fe0ff", .5));
+    for (let k = 0; k < 19; k++) WR(x - 36 + k * 4, GY + 5, 1, 1, k % 2 ? "#e0644b" : "#f4efe4");
+  }
+
+  // Acorns
+  const heroWorld = (camL + baseX + heroOff) * S;
+  let got = 0;
+  acorns.forEach(a => {
+    if (!a.got && heroWorld >= a.x) { a.got = true; a.t = tick; jumpT = tick; sfx.acorn(); }
+    if (a.got) got++;
+    const sx = a.x / S - camL;
+    if (sx < -10 || sx > W + 10) return;
+    if (!a.got) drawAcorn(sx - 3, GY - 12 + (reduceMotion ? 0 : Math.round(Math.sin(tick / 10 + a.x) * 1.5)));
+    else if (tick - a.t < 24) {
+      const k = tick - a.t;
+      R(sx - 1, GY - 14 - k, 2, 2, "#fff6c8"); R(sx - 5, GY - 10 - k / 2, 1, 1, "#ffcb47"); R(sx + 4, GY - 10 - k / 2, 1, 1, "#ffcb47");
+    }
+  });
+  $("acornCount").textContent = got + "/" + acorns.length;
+  if (got !== acornTotal || (current === FINAL && !$("finalScore").textContent)) {
+    acornTotal = got;
+    $("finalScore").textContent = "Acorns collected: " + got + " of " + acorns.length + (got === acorns.length ? ". Perfect run!" : ".");
+  }
+
+  if (st.prop === "court") rallyStep();
+  if (st.prop === "pool") raceStep(now);
+  // Hero
+  const moving = now - lastMove < 140;
+  let pose = {};
+  if (moving || selfWalk) pose.legs = ["a", "b", "a", "b"][Math.floor((moving ? dist / S : hdist) / 5) % 4];
+  else if (arrived) pose = act.pose(actT);
+  else if (tick < waveUntil) pose = { armR: false, extra: WAVE[(tick >> 3) % 2] };
+  pose.extra = (pose.extra || []).slice();
+  pose.blink = !moving && !selfWalk && (tick % 200) < 6;
+  const outfit = { camera: "hat", trail: "hat", billboard: "blazer", hospital: "coat", }[st.prop] || "";
+  if (outfit !== lastOutfit) { lastOutfit = outfit; poofT = tick; }
+  pose.hat = outfit === "hat"; pose.blazer = outfit === "blazer"; pose.coat = outfit === "coat"; pose.phones = outfit === "phones";
+  const h = legH(pose.legs);
+  const face = moving ? facing : selfWalk ? heroFace : arrived ? (pose.face || 1) : facing;
+  const flip = face < 0;
+  const jk = tick - jumpT;
+  const jy = jk >= 0 && jk < 16 ? -Math.round(Math.sin(jk / 16 * Math.PI) * 8) : 0;
+  const bob = (moving || selfWalk) && pose.legs === "b" ? -1 : 0;
+  const hx = Math.round(baseX + heroOff) - 8, hy = GY - h + jy + bob + (pose.yOff || 0);
+  const swimming = arrived && act.swim;
+  // Lantern after dark: in hand while walking, set down beside him when he sits or uses both hands
+  if (night > 0.35 && !swimming) {
+    const hand = !(arrived && act.sit) && pose.armL !== false;
+    const lp = hand ? [[15, 2, "L"], [16, 1, "L"], [16, 2, "L"], [16, 3, "L"], [17, 1, "L"], [17, 2, "Y"], [17, 3, "L"], [18, 1, "L"], [18, 2, "L"], [18, 3, "L"]]
+      : [[h - 4, -3, "L"], [h - 3, -4, "L"], [h - 3, -3, "L"], [h - 3, -2, "L"], [h - 2, -4, "L"], [h - 2, -3, "Y"], [h - 2, -2, "L"], [h - 1, -4, "L"], [h - 1, -3, "L"], [h - 1, -2, "L"]];
+    const gc = hand ? 2 : -3, gr = hand ? 17 : h - 2;
+    const gx = hx + (flip ? 15 - gc : gc), gy = hy + gr;
+    const a = 0.07 * night * (0.9 + 0.1 * Math.sin(tick / 6));
+    ctx.fillStyle = "rgba(255,214,120," + (a * 0.8) + ")";
+    [16, 10, 5].forEach(rad => { for (let dy = -rad; dy <= rad; dy++) { const hw = Math.round(Math.sqrt(rad * rad - dy * dy)); ctx.fillRect(gx - hw, gy + dy, hw * 2 + 1, 1); } });
+    pose.extra.push(...lp);
+  }
+  // Marshmallow toasts slowly by the fire
+  if (actingProp === "finish") PAL.M = rgb(mix(mix([255, 250, 240], [232, 176, 106], clamp(actT / 300, 0, 1)), [120, 66, 30], clamp((actT - 300) / 300, 0, 1)));
+  if (swimming) {
+    // Laps across the pool: only his head and splashing arms show above the water
+    const px0 = propX(current), span = 56, per = 130;
+    const ph = (actT / per) % 2, k = ph < 1 ? ph : 2 - ph, dirR = ph < 1;
+    const laps = Math.floor(actT / per);
+    if (laps > lastLap) { lastLap = laps; if (laps > 0) lapsSeen++; }
+    const sx = Math.round(px0 - 30 + k * span - camL), sy = GY + 3 - 9;
+    const head = compose({ blink: false }).filter(([c, r]) => r <= 8);
+    head.forEach(([col, r, ch]) => { ctx.fillStyle = PAL[ch]; ctx.fillRect(sx - 8 + (dirR ? col : 15 - col), sy + r, 1, 1); });
+    ctx.fillStyle = "rgba(61,154,214,.85)"; ctx.fillRect(sx - 9, GY + 1, 18, 3);
+    const s2 = (tick >> 3) % 2;
+    R(sx + (dirR ? 7 : -9), GY + (s2 ? 0 : 1), 2, 1, "#ffffff"); R(sx + (dirR ? -9 : 7), GY + (s2 ? 1 : 0), 2, 1, "#dff4ff");
+    if (s2) R(sx + (dirR ? 9 : -11), GY - 1, 1, 1, "#ffffff");
+  } else {
+    lastLap = -1;
+    ctx.fillStyle = "rgba(0,0,0,.25)"; ctx.fillRect(hx + 2, GY, 12, 1);
+    drawPose(ctx, hx, hy, pose, flip);
+  }
+  // Thought bubble on the philosophy steps
+  if (pose.think) {
+    const qx = hx + 14, qy = hy - 13 + (reduceMotion ? 0 : Math.round(Math.sin(tick / 12)));
+    R(qx, qy, 9, 10, "#f4efe4"); R(qx - 1, qy + 1, 11, 8, "#f4efe4"); R(qx - 2, qy + 11, 2, 2, "#f4efe4");
+    QMARK.forEach((row, r) => { for (let c = 0; c < 5; c++) if (row[c] === "#") R(qx + 2 + c, qy + 1 + r, 1, 1, "#15152b"); });
+  }
+  // Sparkle when his outfit changes
+  if (tick - poofT < 14 && poofT > 0) {
+    const k = tick - poofT;
+    [[-3, 4], [17, 6], [-1, 14], [16, 16], [7, -3]].forEach(([dx, dy], i) => R(hx + dx + (i % 2 ? k / 3 : -k / 3), hy + dy, 1, 1, k % 4 < 2 ? "#fff6c8" : "#ffcb47"));
+  }
+  // Keep the invisible click target and the speech bubble on top of him
+  heroBtn.style.transform = "translate(" + hx * S + "px," + hy * S + "px)";
+  heroBtn.style.width = 16 * S + "px"; heroBtn.style.height = h * S + "px";
+  if (!bubble.hidden) {
+    const bw = bubble.offsetWidth, bh = bubble.offsetHeight;
+    const bx = clamp((hx + 8) * S - bw / 2, 16, vw - 16 - bw);
+    bubble.style.transform = "translate(" + bx + "px," + Math.max(60, hy * S - bh - 14) + "px)";
+  }
+
+  requestAnimationFrame(render);
+}
+
+/* ---------- Scroll, stations, HUD ---------- */
+let visitedChess = false;
+let current = -1, visited = new Set(), won = false, acornTotal = 0;
+function onScroll() {
+  cam = window.scrollY;
+  const d = cam - lastCam;
+  if (Math.abs(d) > 0.5) { dist += Math.abs(d); facing = d > 0 ? 1 : -1; lastMove = performance.now(); }
+  lastCam = cam;
+  world.style.transform = "translate3d(" + (-cam) + "px,0,0)";
+  const idx = clamp(Math.round(cam / vw), 0, N - 1);
+  if (idx !== current) {
+    current = idx;
+    visited.add(idx);
+    panels.forEach((p, i) => p.classList.toggle("on", i === idx));
+    dots.forEach((b, i) => { b.classList.toggle("on", i === idx); b.classList.toggle("done", visited.has(i) && i !== idx); });
+    const s = STATIONS[idx];
+    if (s.prop === "chessTable" && (solved || visitedChess)) loadPuzzle();
+    if (s.prop === "chessTable") visitedChess = true;
+    if (s.prop === "trail" && found > 0) newSurvey();
+    $("where").innerHTML = "<b>" + (s.code === "★" ? "Final" : s.code === "AH" ? "★" : s.code) + "</b>" + esc(s.name);
+    if (idx === FINAL) {
+      if (!won) { won = true; sfx.win(); }
+    }
+  }
+}
+function goTo(i) {
+  window.scrollTo({ top: clamp(i, 0, N - 1) * vw, behavior: reduceMotion ? "auto" : "smooth" });
+}
+
+/* ---------- Screens ---------- */
+let started = false;
+function lock(on) { root.classList.toggle("locked", on); }
+function showScreen(id) {
+  ["title", "select", "quick"].forEach(s => $(s).hidden = s !== id);
+  lock(true);
+  $("app").classList.toggle("titled", id === "title");
+  if (id === "title") { $("hud").hidden = true; heroBtn.hidden = true; eggBtn.hidden = true; bubble.hidden = true; focusMenu(); }
+  const scr = $(id);
+  const f = scr.querySelector("[data-close], button, a");
+  if (id !== "title" && f) f.focus();
+}
+function closeScreens() { ["title", "select", "quick"].forEach(s => $(s).hidden = true); $("app").classList.remove("titled"); lock(false); }
+function startGame(i) {
+  closeScreens();
+  started = true;
+  $("hud").hidden = false; heroBtn.hidden = false;
+  $("startBtn").textContent = "Continue";
+  waveUntil = tick + 100;
+  layout(); onScroll();
+  if (typeof i === "number") goTo(i);
+  sfx.select();
+}
+document.querySelectorAll("[data-close]").forEach(b => b.addEventListener("click", () => started ? startGame() : showScreen("title")));
+$("menuBtn").addEventListener("click", () => showScreen("title"));
+
+/* Title menu: arrow keys + Enter, plus mouse/touch */
+const menuItems = [...$("mainMenu").children];
+let sel = 0;
+function focusMenu() { menuItems.forEach((m, i) => m.classList.toggle("sel", i === sel)); menuItems[sel].focus({ preventScroll: true }); }
+menuItems.forEach((m, i) => {
+  m.addEventListener("mouseenter", () => { if (sel !== i) { sel = i; focusMenu(); sfx.move(); } });
+  m.addEventListener("focus", () => { sel = i; menuItems.forEach((x, j) => x.classList.toggle("sel", j === i)); });
+  m.addEventListener("click", () => {
+    const a = m.dataset.act;
+    if (a === "start") startGame();
+    else if (a === "select") { sfx.select(); showScreen("select"); }
+    else if (a === "quick") { sfx.select(); showScreen("quick"); }
+    else if (a === "sound") setSound(!soundOn);
+  });
+});
+
+window.addEventListener("keydown", e => {
+  if (!$("title").hidden) {
+    if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+      e.preventDefault(); sel = (sel + (e.key === "ArrowDown" ? 1 : -1) + menuItems.length) % menuItems.length; focusMenu(); sfx.move();
+    }
+    return;
+  }
+  if (!$("select").hidden || !$("quick").hidden) { if (e.key === "Escape") started ? startGame() : showScreen("title"); return; }
+  if (e.key === "Escape") { showScreen("title"); return; }
+  if (e.target.closest && e.target.closest("input, textarea")) return;
+  if (e.key === " " && STATIONS[current] && STATIONS[current].prop === "court" && !(e.target.closest && e.target.closest("button"))) { e.preventDefault(); rallyHit(); return; }
+  if (STATIONS[current] && STATIONS[current].prop === "pool" && (e.key === "f" || e.key === "F" || e.key === "j" || e.key === "J")) { raceStroke(e.key.toLowerCase() === "f" ? "L" : "R"); return; }
+  if (e.key === "ArrowRight") { e.preventDefault(); goTo(current + 1); }
+  if (e.key === "ArrowLeft") { e.preventDefault(); goTo(current - 1); }
+});
+// Horizontal trackpad swipes also walk
+window.addEventListener("wheel", e => {
+  if (root.classList.contains("locked")) return;
+  if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) window.scrollBy(0, e.deltaX);
+}, { passive: true });
+
+/* ---------- Contact actions ---------- */
+let toastT;
+function toast(msg) { const t = $("toast"); t.textContent = msg; t.classList.add("show"); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove("show"), 2200); }
+$("copyEmail").addEventListener("click", () => {
+  const fallback = () => { const r = document.createRange(); r.selectNodeContents($("emailText")); const s = getSelection(); s.removeAllRanges(); s.addRange(r); toast("Selected. Press Ctrl/Cmd + C"); };
+  try { navigator.clipboard.writeText(EMAIL).then(() => { toast("Email copied"); sfx.select(); }, fallback); } catch (e) { fallback(); }
+});
+$("replay").addEventListener("click", () => { won = false; goTo(0); });
+$("replay2").addEventListener("click", () => { won = false; goTo(0); });
+$("toAfter").addEventListener("click", () => goTo(FINAL + 1));
+
+// Resume download: inside the Claude viewer use its save prompt; on a normal host the link opens the PDF.
+let DL = null;
+try { if (window.claude && typeof window.claude.use === "function") window.claude.use("downloads").then(ns => { DL = ns; }, () => {}); } catch (e) {}
+document.querySelectorAll(".resume-link").forEach(a => a.addEventListener("click", e => {
+  if (!DL) return;
+  e.preventDefault();
+  fetch("ryan-guha-resume.pdf").then(r => { if (!r.ok) throw new Error(); return r.blob(); })
+    .then(b => DL.save({ filename: "Ryan-Guha-Resume.pdf", data: b }))
+    .then(() => toast("Resume saved"), err => { if (!err || err.code !== "declined") toast("Download unavailable here"); });
+}));
+
+/* ---------- Bonus world mini-games ---------- */
+// Chess: mate-in-one positions (all verified with a chess engine); a new one on every visit
+const PUZZLES = [
+  { fen: "6k1/5ppp/8/8/8/8/5PPP/R5K1", sol: ["a1a8"] },
+  { fen: "7k/8/6K1/8/8/8/8/1Q6", sol: ["b1b8"] },
+  { fen: "6rk/6pp/8/6N1/8/8/8/K7", sol: ["g5f7"] },
+  { fen: "4k3/8/4K3/8/8/8/8/7R", sol: ["h1h8"] },
+  { fen: "r1bqkb1r/pppp1ppp/2n2n2/4p2Q/2B1P3/8/PPPP1PPP/RNB1K1NR", sol: ["h5f7"] },
+  { fen: "6k1/5p1p/5Qp1/8/8/8/1B6/6K1", sol: ["f6d8", "f6g7", "f6h8"] },
+  { fen: "7k/R7/8/8/8/8/8/1R4K1", sol: ["b1b8"] }
+];
+const GLYPH = { k: "♚", q: "♛", r: "♜", b: "♝", n: "♞", p: "♟" };
+const PNAME = { k: "king", q: "queen", r: "rook", b: "bishop", n: "knight", p: "pawn" };
+const sqName = i => "abcdefgh"[i % 8] + (8 - Math.floor(i / 8));
+let puzI = -1, board = [], selSq = null, solved = false, lastMv = null;
+const chessEl = $("chessBoard"), chessSq = [];
+for (let i = 0; i < 64; i++) {
+  const b = document.createElement("button");
+  b.type = "button";
+  b.addEventListener("click", () => chessClick(i));
+  chessEl.appendChild(b); chessSq.push(b);
+}
+function loadPuzzle() {
+  let n; do { n = Math.floor(Math.random() * PUZZLES.length); } while (n === puzI && PUZZLES.length > 1);
+  puzI = n; board = []; selSq = null; solved = false; lastMv = null;
+  PUZZLES[n].fen.split("/").forEach(row => { for (const ch of row) { if (/\d/.test(ch)) for (let k = 0; k < +ch; k++) board.push(""); else board.push(ch); } });
+  $("chessMsg").textContent = "Tap a white piece, then the square to move it to.";
+  drawBoard();
+}
+function drawBoard(bad) {
+  chessSq.forEach((b, i) => {
+    const pc = board[i], r = Math.floor(i / 8), c = i % 8;
+    b.className = ((r + c) % 2 ? "dk" : "") + (pc ? (pc === pc.toUpperCase() ? " w" : " bk") : "") + (i === selSq ? " sel" : "") + (lastMv && lastMv.includes(i) ? " mv" : "") + (i === bad ? " bad" : "");
+    b.textContent = pc ? GLYPH[pc.toLowerCase()] + "︎" : "";
+    b.setAttribute("aria-label", sqName(i) + (pc ? ", " + (pc === pc.toUpperCase() ? "white " : "black ") + PNAME[pc.toLowerCase()] : ", empty"));
+  });
+}
+function chessClick(i) {
+  if (solved) return;
+  const pc = board[i], white = pc && pc === pc.toUpperCase();
+  if (selSq === null || white) { selSq = white && selSq !== i ? i : null; drawBoard(); if (selSq !== null) sfx.move(); return; }
+  const mv = sqName(selSq) + sqName(i);
+  if (PUZZLES[puzI].sol.includes(mv)) {
+    board[i] = board[selSq]; board[selSq] = ""; lastMv = [selSq, i]; selSq = null; solved = true;
+    $("chessMsg").textContent = "Checkmate! Come back for a new puzzle, or tap New puzzle.";
+    drawBoard(); sfx.win();
+  } else {
+    const from = selSq; selSq = null;
+    $("chessMsg").textContent = "Not checkmate. Try a different move.";
+    drawBoard(i); tone(200, 0.12);
+    setTimeout(() => drawBoard(), 380);
+  }
+}
+$("chessNew").addEventListener("click", loadPuzzle);
+loadPuzzle();
+
+// Pickleball: timing rally
+const rally = { p: 0.8, dir: -1, speed: 0.011, n: 0, best: 0, live: false };
+const pbBall = $("pbBall"), pbHit = $("pbHit"), pbMsg = $("pbMsg");
+function rallyDraw() { const w = pbBall.parentElement.clientWidth - 12 - 22; pbBall.style.transform = "translateX(" + (14 + rally.p * w) + "px)"; }
+function rallyMiss(msg) { rally.live = false; pbHit.textContent = "Serve"; pbMsg.textContent = msg + " Rally " + rally.n + " · Best " + rally.best; tone(180, 0.15); }
+function rallyStep() {
+  if (!rally.live) return;
+  rally.p += rally.dir * rally.speed;
+  if (rally.p >= 1) { rally.p = 1; rally.dir = -1; tone(330, 0.03); }
+  if (rally.p <= 0) { rally.p = 0; rallyMiss("Missed it!"); }
+  rallyDraw();
+}
+function rallyHit() {
+  if (!rally.live) { Object.assign(rally, { p: 0.8, dir: -1, speed: 0.011, n: 0, live: true }); pbHit.textContent = "Hit"; pbMsg.textContent = "Rally 0 · Best " + rally.best; return; }
+  if (rally.dir < 0 && rally.p < 0.17) {
+    rally.dir = 1; rally.n++; rally.best = Math.max(rally.best, rally.n); rally.speed = Math.min(0.03, rally.speed * 1.07);
+    pbMsg.textContent = "Rally " + rally.n + " · Best " + rally.best; tone(660, 0.05, 0, "square", 0.045, true);
+  } else rallyMiss("Too early!");
+}
+pbHit.addEventListener("click", rallyHit);
+rallyDraw();
+
+// Field survey: three animals hidden in twelve patches of brush, reshuffled on every visit
+const ANIMALS = [
+  { name: "White-tailed deer", map: ["..........DD.", ".........DDDD", ".........DDeD", "..DDDDDDDDDd.", ".qDDDDDDDDD..", "..DDDDDDDDd..", "..D.D....D.D.", "..D.D....D.D.", "..d..d..d...d"] },
+  { name: "Eastern cottontail", map: ["..r.r....", "..r.r....", ".rrrr....", "rerrrrrr.", ".rrrrrrrq", "..rrrrrr.", "..r...r.."] },
+  { name: "Red fox", map: ["f.f.........", "fff.........", "fefffffff...", "qfffffffff.f", ".fffffffffqq", "..f.f..f.f..", "..d.d..d.d.."] },
+  { name: "Box turtle", map: ["....VVVVV..", "...VyVyVyV.", "..VyVyVyVyV", "vevVVVVVVVV", "vv.v.....v."] },
+  { name: "Northern cardinal", map: ["...c....", "..ccc...", "..cec...", ".ycccc..", "..ccccc.", "...ccccc", "....cc..", "....dd.."] },
+  { name: "Barred owl", map: [".u....u.", ".uuuuuu.", "uUeUUeUu", "uUUyyUUu", "uuUUUUuu", "uUuUUuUu", "uuUuuUuu", ".uuuuuu.", "..y..y.."] }
+];
+const surveyEl = $("survey"), surveyBtns = [];
+let hidden = {}, found = 0, tries = 0;
+for (let i = 0; i < 12; i++) {
+  const b = document.createElement("button");
+  b.type = "button"; b.setAttribute("aria-label", "Search patch " + (i + 1));
+  b.addEventListener("click", () => searchPatch(i));
+  surveyEl.appendChild(b); surveyBtns.push(b);
+}
+function newSurvey() {
+  hidden = {}; found = 0; tries = 0;
+  const spots = [...Array(12).keys()].sort(() => Math.random() - 0.5).slice(0, 3);
+  const kinds = [...ANIMALS.keys()].sort(() => Math.random() - 0.5).slice(0, 3);
+  spots.forEach((s, k) => hidden[s] = kinds[k]);
+  surveyBtns.forEach(b => { b.className = ""; b.textContent = ""; b.disabled = false; });
+  $("surveyMsg").textContent = "Found 0 of 3";
+}
+function searchPatch(i) {
+  const b = surveyBtns[i];
+  if (b.disabled) return;
+  b.disabled = true; tries++;
+  if (hidden[i] === undefined) { b.className = "open"; b.textContent = "Just leaves"; tone(240, 0.05); }
+  else {
+    const a = ANIMALS[hidden[i]], cv = document.createElement("canvas"), cx = cv.getContext("2d");
+    cv.width = a.map[0].length; cv.height = a.map.length;
+    a.map.forEach((row, r) => { for (let c = 0; c < row.length; c++) if (row[c] !== ".") { cx.fillStyle = PAL[row[c]]; cx.fillRect(c, r, 1, 1); } });
+    b.className = "found"; b.textContent = ""; b.appendChild(cv);
+    const lab = document.createElement("span"); lab.textContent = a.name; b.appendChild(lab);
+    found++; sfx.acorn(); tone(880, 0.06, 0, "square", 0.04, true);
+  }
+  $("surveyMsg").textContent = found === 3 ? "Survey complete in " + tries + " searches!" : "Found " + found + " of 3";
+  if (found === 3) sfx.win();
+}
+$("surveyNew").addEventListener("click", newSurvey);
+newSurvey();
+
+// Swimming: race Ryan one length by alternating strokes
+const race = { state: "idle", you: 0, ryan: 0, last: null, t0: 0, cd: 0, best: null };
+function raceDraw() {
+  const w = $("swYou").parentElement.clientWidth - 12 - 8;
+  $("swYou").style.transform = "translateX(" + race.you * w + "px)";
+  $("swRyan").style.transform = "translateX(" + race.ryan * w + "px)";
+}
+function raceFinish(now) {
+  if (race.you < 1 && race.ryan < 1) return;
+  race.state = "done";
+  const t = ((now - race.t0) / 1000).toFixed(2);
+  if (race.you >= 1) {
+    race.best = race.best === null ? t : Math.min(+race.best, +t).toFixed(2);
+    $("swMsg").textContent = "You win in " + t + "s! Best " + race.best + "s. Tap Left to race again."; sfx.win();
+  } else $("swMsg").textContent = "Ryan touches the wall first. Tap Left to race again.";
+}
+function raceStroke(side) {
+  const now = performance.now();
+  if (race.state === "idle" || race.state === "done") {
+    if (side !== "L") return;
+    Object.assign(race, { state: "count", you: 0, ryan: 0, last: null, cd: now }); raceDraw(); return;
+  }
+  if (race.state !== "go") return;
+  if (side !== race.last) { race.you = Math.min(1, race.you + 0.04); race.last = side; tone(side === "L" ? 392 : 440, 0.04, 0, "square", 0.04); }
+  else race.you = Math.max(0, race.you - 0.01);
+  raceDraw(); raceFinish(now);
+}
+function raceStep(now) {
+  if (race.state === "count") {
+    const n = 3 - Math.floor((now - race.cd) / 650);
+    if (n <= 0) { race.state = "go"; race.t0 = now; $("swMsg").textContent = "Go!"; tone(880, 0.12, 0, "square", 0.05); }
+    else if ($("swMsg").textContent !== n + "...") { $("swMsg").textContent = n + "..."; tone(440, 0.06); }
+  } else if (race.state === "go") {
+    race.ryan = Math.min(1, (now - race.t0) / 4600);
+    raceDraw(); raceFinish(now);
+  }
+}
+$("swL").addEventListener("click", () => raceStroke("L"));
+$("swR").addEventListener("click", () => raceStroke("R"));
+raceDraw();
+
+// Background music: a docked Spotify player that stays mounted while you explore every level
+const PLAYLIST = "https://open.spotify.com/playlist/6u1yHLKO1XAnBeCZyN8XSO";
+const inClaudeViewer = () => !!(window.claude && typeof window.claude.use === "function") || /claude/i.test(location.hostname);
+let musicUnlocked = false, eggFound = false;
+const eggBtn = $("eggBtn"), dock = $("dock");
+function unlockMusic(fromEgg) {
+  if (!musicUnlocked) {
+    musicUnlocked = true;
+    if (!inClaudeViewer()) {
+      const f = document.createElement("iframe");
+      f.src = "https://open.spotify.com/embed/playlist/6u1yHLKO1XAnBeCZyN8XSO?utm_source=generator&theme=0";
+      f.title = "Ryan's soundtrack on Spotify";
+      f.allow = "autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture";
+      $("dockPlayer").appendChild(f);
+    } else {
+      $("dockPlayer").innerHTML = '<div class="row">' + ext(PLAYLIST, "Open on Spotify", "green") + "</div>";
+      $("dockNote").textContent = "The built-in player works on Ryan's own site. Here, the playlist opens on Spotify.";
+    }
+    $("musicBtn").hidden = false;
+  }
+  dock.hidden = false; dock.classList.remove("min"); $("dockMin").textContent = "Hide";
+  if (fromEgg) { toast("Secret found: Ryan's soundtrack!"); sfx.win(); }
+}
+eggBtn.addEventListener("click", () => { eggFound = true; eggBtn.hidden = true; unlockMusic(true); });
+$("bgMusic").addEventListener("click", () => unlockMusic(false));
+$("dockMin").addEventListener("click", () => { const m = dock.classList.toggle("min"); $("dockMin").textContent = m ? "Show" : "Hide"; });
+$("musicBtn").addEventListener("click", () => { const m = dock.classList.toggle("min"); $("dockMin").textContent = m ? "Show" : "Hide"; });
+
+/* ---------- Boot ---------- */
+let lastW = 0;
+function onResize() {
+  const idx = current < 0 ? 0 : current;
+  const widthChanged = window.innerWidth !== lastW;
+  lastW = window.innerWidth;
+  layout();
+  if (widthChanged) {
+    acorns.forEach((a, i) => { a.x = (Math.floor(i / 2) + (i % 2 ? 0.68 : 0.42)) * vw; });
+    window.scrollTo(0, idx * vw);
+  }
+  onScroll();
+}
+window.addEventListener("resize", onResize);
+window.addEventListener("scroll", onScroll, { passive: true });
+lastW = window.innerWidth;
+layout();
+window.scrollTo(0, 0);
+onScroll();
+showScreen("title");
+requestAnimationFrame(render);
+})();
+</script>
+
+</body></html>
